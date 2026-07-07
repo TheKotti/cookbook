@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "Organization", "name": "Not a recipe"}
+</script>
+<script type="application/ld+json">
+{ this block is deliberately malformed JSON }
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {"@type": "WebPage", "name": "wrapper"},
+    {
+      "@type": ["Recipe", "Thing"],
+      "name": "Synthetisches Testrezept",
+      "author": {"@type": "Person", "name": "Gelöschter Benutzer"},
+      "recipeYield": "Portionen",
+      "prepTime": "PT15M",
+      "totalTime": "PT45M",
+      "image": {"@type": "ImageObject", "url": "https://img.chefkoch-cdn.de/synthetic.jpg"},
+      "aggregateRating": {"@type": "AggregateRating", "ratingValue": "3.5"},
+      "keywords": ["Einfach", "einfach", "Pasta"],
+      "recipeCategory": "Kochen",
+      "recipeIngredient": ["2 EL Butter", "Salz"],
+      "recipeInstructions": "Butter schmelzen.\nSalzen.\n\nServieren."
+    }
+  ]
+}
+</script>
+</head>
+<body>Synthetic page</body>
+</html>
