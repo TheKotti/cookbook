@@ -103,6 +103,10 @@ class Recipe {
         schemaVersion: schemaVersion,
       );
 
+  /// Manually created recipes carry a synthetic `manual:<micros>` sourceUrl
+  /// instead of a chefkoch link.
+  bool get isManual => sourceUrl.startsWith('manual:');
+
   String get ingredientsJson => jsonEncode(ingredients.map((i) => i.toJson()).toList());
 
   String get stepsJson => jsonEncode(steps);
