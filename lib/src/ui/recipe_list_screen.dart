@@ -1,7 +1,14 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
+import '../backup/backup_service.dart';
 import '../models/recipe.dart';
 import '../providers.dart';
 import 'import_screen.dart';
@@ -18,7 +25,20 @@ class RecipeListScreen extends ConsumerWidget {
     final query = ref.watch(searchQueryProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Cookbook')),
+      appBar: AppBar(
+        title: const Text('Cookbook'),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (action) => action == 'export'
+                ? _exportBackup(context, ref)
+                : _importBackup(context, ref),
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'export', child: Text('Export backup')),
+              PopupMenuItem(value: 'import', child: Text('Import backup')),
+            ],
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.of(context)
             .push(MaterialPageRoute(builder: (_) => const ImportScreen())),
@@ -93,6 +113,39 @@ class RecipeListScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _exportBackup(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final json = await ref.read(backupServiceProvider).exportJson();
+      final dir = await getTemporaryDirectory();
+      final stamp = DateTime.now().toIso8601String().split('T').first;
+      final file = File('${dir.path}/cookbook-backup-$stamp.json');
+      await file.writeAsString(json);
+      await SharePlus.instance.share(
+        ShareParams(files: [XFile(file.path, mimeType: 'application/json')]),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Export failed: $e')));
+    }
+  }
+
+  Future<void> _importBackup(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final picked = await FilePicker.pickFiles(withData: true);
+      final bytes = picked?.files.single.bytes;
+      if (bytes == null) return; // user cancelled
+      final result = await ref.read(backupServiceProvider).importJson(utf8.decode(bytes));
+      messenger.showSnackBar(SnackBar(
+          content:
+              Text('Backup imported: ${result.added} added, ${result.updated} updated.')));
+    } on BackupException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Import failed: $e')));
+    }
   }
 }
 
