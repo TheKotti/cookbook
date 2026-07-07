@@ -116,7 +116,7 @@ class _RecipeCard extends StatelessWidget {
                   child: CachedNetworkImage(
                     imageUrl: recipe.imageUrl!,
                     fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) => const Icon(Icons.restaurant),
+                    errorWidget: (_, _, _) => const Icon(Icons.restaurant),
                   ),
                 ),
         ),
