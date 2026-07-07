@@ -113,14 +113,8 @@ class LocalRecipeRepository implements RecipeRepository {
     return db
         .customSelect(sql, variables: variables, readsFrom: {db.recipes, db.recipeTags})
         .watch()
-        .asyncMap((rows) async {
-      // TableInfo.map returns FutureOr — await each row explicitly.
-      final mapped = <Recipe>[];
-      for (final row in rows) {
-        mapped.add(await db.recipes.map(row.data));
-      }
-      return _withTags(mapped);
-    });
+        .asyncMap((rows) =>
+            _withTags([for (final row in rows) db.recipes.map(row.data)]));
   }
 
   @override
