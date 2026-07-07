@@ -134,9 +134,10 @@ class RecipeListScreen extends ConsumerWidget {
   Future<void> _importBackup(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final picked = await FilePicker.pickFiles(withData: true);
-      final bytes = picked?.files.single.bytes;
-      if (bytes == null) return; // user cancelled
+      final picked = await FilePicker.pickFiles();
+      final file = picked?.files.single;
+      if (file == null) return; // user cancelled
+      final bytes = await file.readAsBytes();
       final result = await ref.read(backupServiceProvider).importJson(utf8.decode(bytes));
       messenger.showSnackBar(SnackBar(
           content:
