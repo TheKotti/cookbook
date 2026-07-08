@@ -22,24 +22,34 @@ Recipe buildManualRecipe({
   required String stepsText,
   DateTime? now,
 }) {
+  final effectiveNow = now ?? DateTime.now();
+  // Recomputing total from prep + cook would corrupt imported recipes whose
+  // total includes resting time — preserve it while prep/cook are untouched.
+  final timesUnchanged =
+      existing != null &&
+      prepMinutes == existing.prepMinutes &&
+      cookMinutes == existing.cookMinutes;
+  final totalMinutes = timesUnchanged
+      ? existing.totalMinutes
+      : prepMinutes == null && cookMinutes == null
+      ? null
+      : (prepMinutes ?? 0) + (cookMinutes ?? 0);
   return Recipe(
     id: existing?.id,
-    sourceUrl: existing?.sourceUrl ?? newManualSourceUrl(now: now),
+    sourceUrl: existing?.sourceUrl ?? newManualSourceUrl(now: effectiveNow),
     title: title.trim(),
     author: author.trim(),
     imageUrl: existing?.imageUrl,
     baseServings: servings,
     prepMinutes: prepMinutes,
     cookMinutes: cookMinutes,
-    totalMinutes: prepMinutes == null && cookMinutes == null
-        ? null
-        : (prepMinutes ?? 0) + (cookMinutes ?? 0),
+    totalMinutes: totalMinutes,
     rating: existing?.rating,
     ingredients: [
-      for (final line in _nonEmptyLines(ingredientsText)) parseIngredient(line)
+      for (final line in _nonEmptyLines(ingredientsText)) parseIngredient(line),
     ],
     steps: _nonEmptyLines(stepsText),
     tags: existing?.tags ?? const [],
-    importedAt: existing?.importedAt ?? (now ?? DateTime.now()),
+    importedAt: existing?.importedAt ?? effectiveNow,
   );
 }

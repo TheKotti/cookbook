@@ -5,15 +5,15 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('buildManualRecipe (create)', () {
     Recipe create() => buildManualRecipe(
-          title: '  Pancakes ',
-          author: ' Oma ',
-          servings: 4,
-          prepMinutes: 10,
-          cookMinutes: 20,
-          ingredientsText: '200 g Mehl\n\n  2 Eier  \n',
-          stepsText: 'Mix everything.\n\nBake.\n',
-          now: DateTime.utc(2026, 7, 7),
-        );
+      title: '  Pancakes ',
+      author: ' Oma ',
+      servings: 4,
+      prepMinutes: 10,
+      cookMinutes: 20,
+      ingredientsText: '200 g Mehl\n\n  2 Eier  \n',
+      stepsText: 'Mix everything.\n\nBake.\n',
+      now: DateTime.utc(2026, 7, 7),
+    );
 
     test('trims title/author and splits non-empty lines', () {
       final r = create();
@@ -35,7 +35,10 @@ void main() {
 
     test('sets synthetic manual sourceUrl and importedAt from now', () {
       final r = create();
-      expect(r.sourceUrl, 'manual:${DateTime.utc(2026, 7, 7).microsecondsSinceEpoch}');
+      expect(
+        r.sourceUrl,
+        'manual:${DateTime.utc(2026, 7, 7).microsecondsSinceEpoch}',
+      );
       expect(r.isManual, isTrue);
       expect(r.importedAt, DateTime.utc(2026, 7, 7));
       expect(r.id, isNull);
@@ -47,11 +50,19 @@ void main() {
     test('totalMinutes is prep + cook, or the present one, or null', () {
       expect(create().totalMinutes, 30);
       final onlyPrep = buildManualRecipe(
-          title: 't', author: '', prepMinutes: 15,
-          ingredientsText: 'x', stepsText: 'y');
+        title: 't',
+        author: '',
+        prepMinutes: 15,
+        ingredientsText: 'x',
+        stepsText: 'y',
+      );
       expect(onlyPrep.totalMinutes, 15);
       final neither = buildManualRecipe(
-          title: 't', author: '', ingredientsText: 'x', stepsText: 'y');
+        title: 't',
+        author: '',
+        ingredientsText: 'x',
+        stepsText: 'y',
+      );
       expect(neither.totalMinutes, isNull);
     });
   });
@@ -89,13 +100,69 @@ void main() {
       expect(r.steps, ['New step']);
       expect(r.ingredients.single.unit, 'EL');
     });
+
+    test('preserves totalMinutes when prep/cook are unchanged', () {
+      final imported = Recipe(
+        id: 8,
+        sourceUrl: 'https://www.chefkoch.de/rezepte/2/b.html',
+        title: 'Braised',
+        author: 'a',
+        prepMinutes: 20,
+        cookMinutes: 60,
+        totalMinutes: 140, // includes 60 min resting time
+        ingredients: const [Ingredient(name: 'Fleisch', raw: 'Fleisch')],
+        steps: const ['Cook'],
+        tags: const [],
+        importedAt: DateTime.utc(2026, 1, 1),
+      );
+      final r = buildManualRecipe(
+        existing: imported,
+        title: 'Braised (edited)',
+        author: 'a',
+        prepMinutes: 20,
+        cookMinutes: 60,
+        ingredientsText: 'Fleisch',
+        stepsText: 'Cook',
+      );
+      expect(r.totalMinutes, 140);
+    });
+
+    test('recomputes totalMinutes when prep or cook changed', () {
+      final imported = Recipe(
+        id: 9,
+        sourceUrl: 'https://www.chefkoch.de/rezepte/3/c.html',
+        title: 'Braised',
+        author: 'a',
+        prepMinutes: 20,
+        cookMinutes: 60,
+        totalMinutes: 140,
+        ingredients: const [Ingredient(name: 'Fleisch', raw: 'Fleisch')],
+        steps: const ['Cook'],
+        tags: const [],
+        importedAt: DateTime.utc(2026, 1, 1),
+      );
+      final r = buildManualRecipe(
+        existing: imported,
+        title: 'Braised',
+        author: 'a',
+        prepMinutes: 30,
+        cookMinutes: 60,
+        ingredientsText: 'Fleisch',
+        stepsText: 'Cook',
+      );
+      expect(r.totalMinutes, 90);
+    });
   });
 
   test('isManual is false for chefkoch URLs', () {
     final r = Recipe(
       sourceUrl: 'https://www.chefkoch.de/rezepte/1/a.html',
-      title: 't', author: '', ingredients: const [], steps: const [],
-      tags: const [], importedAt: DateTime.utc(2026, 7, 7),
+      title: 't',
+      author: '',
+      ingredients: const [],
+      steps: const [],
+      tags: const [],
+      importedAt: DateTime.utc(2026, 7, 7),
     );
     expect(r.isManual, isFalse);
   });
