@@ -24,26 +24,35 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
   }
 
-  Future<ProviderContainer> pumpForm(WidgetTester tester,
-      {model.Recipe? existing}) async {
-    final container =
-        ProviderContainer(overrides: [databaseProvider.overrideWithValue(db)]);
+  Future<ProviderContainer> pumpForm(
+    WidgetTester tester, {
+    model.Recipe? existing,
+  }) async {
+    final container = ProviderContainer(
+      overrides: [databaseProvider.overrideWithValue(db)],
+    );
     addTearDown(container.dispose);
-    await tester.pumpWidget(UncontrolledProviderScope(
-      container: container,
-      child: MaterialApp(home: RecipeFormScreen(existing: existing)),
-    ));
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(home: RecipeFormScreen(existing: existing)),
+      ),
+    );
     await settle(tester);
     return container;
   }
 
-  Future<void> enterField(WidgetTester tester, String label, String text) async {
-    await tester.enterText(
-        find.widgetWithText(TextFormField, label), text);
+  Future<void> enterField(
+    WidgetTester tester,
+    String label,
+    String text,
+  ) async {
+    await tester.enterText(find.widgetWithText(TextFormField, label), text);
   }
 
-  testWidgets('blocks save and shows errors when required fields are empty',
-      (tester) async {
+  testWidgets('blocks save and shows errors when required fields are empty', (
+    tester,
+  ) async {
     final container = await pumpForm(tester);
     await tester.ensureVisible(find.text('Save'));
     await tester.tap(find.text('Save'));
@@ -51,7 +60,9 @@ void main() {
     expect(find.text('Title is required'), findsOneWidget);
     expect(find.text('Add at least one ingredient'), findsOneWidget);
     expect(find.text('Add at least one step'), findsOneWidget);
-    final saved = await container.read(recipeRepositoryProvider).getAllRecipes();
+    final saved = await container
+        .read(recipeRepositoryProvider)
+        .getAllRecipes();
     expect(saved, isEmpty);
     await flushTeardown(tester);
   });
@@ -66,14 +77,19 @@ void main() {
     await flushTeardown(tester);
   });
 
-  testWidgets('create saves a manual recipe and opens its detail screen',
-      (tester) async {
+  testWidgets('create saves a manual recipe and opens its detail screen', (
+    tester,
+  ) async {
     final container = await pumpForm(tester);
     await enterField(tester, 'Title', 'Pancakes');
     await enterField(tester, 'Servings', '4');
     await enterField(tester, 'Prep time (min)', '10');
     await enterField(tester, 'Cook time (min)', '20');
-    await enterField(tester, 'Ingredients (one per line)', '200 g Mehl\n2 Eier');
+    await enterField(
+      tester,
+      'Ingredients (one per line)',
+      '200 g Mehl\n2 Eier',
+    );
     await enterField(tester, 'Steps (one per line)', 'Mix.\nBake.');
     await tester.ensureVisible(find.text('Save'));
     await tester.tap(find.text('Save'));
@@ -91,10 +107,12 @@ void main() {
     await flushTeardown(tester);
   });
 
-  testWidgets('edit pre-fills fields and preserves identity and tags',
-      (tester) async {
-    final container =
-        ProviderContainer(overrides: [databaseProvider.overrideWithValue(db)]);
+  testWidgets('edit pre-fills fields and preserves identity and tags', (
+    tester,
+  ) async {
+    final container = ProviderContainer(
+      overrides: [databaseProvider.overrideWithValue(db)],
+    );
     addTearDown(container.dispose);
     final repo = container.read(recipeRepositoryProvider);
     final original = model.Recipe(
@@ -110,10 +128,12 @@ void main() {
     final id = await repo.saveRecipe(original);
     final existing = (await repo.getRecipe(id))!;
 
-    await tester.pumpWidget(UncontrolledProviderScope(
-      container: container,
-      child: MaterialApp(home: RecipeFormScreen(existing: existing)),
-    ));
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(home: RecipeFormScreen(existing: existing)),
+      ),
+    );
     await settle(tester);
 
     expect(find.text('Edit recipe'), findsOneWidget);

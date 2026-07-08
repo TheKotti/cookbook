@@ -32,21 +32,34 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
     super.initState();
     _title = TextEditingController(text: widget.existing?.title ?? '');
     _author = TextEditingController(text: widget.existing?.author ?? '');
-    _servings =
-        TextEditingController(text: widget.existing?.baseServings?.toString() ?? '');
-    _prep =
-        TextEditingController(text: widget.existing?.prepMinutes?.toString() ?? '');
-    _cook =
-        TextEditingController(text: widget.existing?.cookMinutes?.toString() ?? '');
+    _servings = TextEditingController(
+      text: widget.existing?.baseServings?.toString() ?? '',
+    );
+    _prep = TextEditingController(
+      text: widget.existing?.prepMinutes?.toString() ?? '',
+    );
+    _cook = TextEditingController(
+      text: widget.existing?.cookMinutes?.toString() ?? '',
+    );
     _ingredients = TextEditingController(
-        text: widget.existing?.ingredients.map((i) => i.raw).join('\n') ?? '');
-    _steps =
-        TextEditingController(text: widget.existing?.steps.join('\n') ?? '');
+      text: widget.existing?.ingredients.map((i) => i.raw).join('\n') ?? '',
+    );
+    _steps = TextEditingController(
+      text: widget.existing?.steps.join('\n') ?? '',
+    );
   }
 
   @override
   void dispose() {
-    for (final c in [_title, _author, _servings, _prep, _cook, _ingredients, _steps]) {
+    for (final c in [
+      _title,
+      _author,
+      _servings,
+      _prep,
+      _cook,
+      _ingredients,
+      _steps,
+    ]) {
       c.dispose();
     }
     super.dispose();
@@ -60,7 +73,9 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
   }
 
   String? _requiredLines(String? value, String message) =>
-      (value ?? '').split('\n').any((l) => l.trim().isNotEmpty) ? null : message;
+      (value ?? '').split('\n').any((l) => l.trim().isNotEmpty)
+      ? null
+      : message;
 
   Future<void> _save() async {
     if (_saving || !_formKey.currentState!.validate()) return;
@@ -80,14 +95,16 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
       if (!mounted) return;
       if (widget.existing == null) {
         Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => RecipeDetailScreen(recipeId: id)));
+          MaterialPageRoute(builder: (_) => RecipeDetailScreen(recipeId: id)),
+        );
       } else {
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Could not save the recipe: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not save the recipe: $e')),
+        );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -107,83 +124,99 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-            TextFormField(
-              controller: _title,
-              decoration: const InputDecoration(
-                  labelText: 'Title', border: OutlineInputBorder()),
-              textInputAction: TextInputAction.next,
-              validator: (v) =>
-                  (v ?? '').trim().isEmpty ? 'Title is required' : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _author,
-              decoration: const InputDecoration(
-                  labelText: 'Author (optional)', border: OutlineInputBorder()),
-              textInputAction: TextInputAction.next,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _servings,
+                  TextFormField(
+                    controller: _title,
                     decoration: const InputDecoration(
-                        labelText: 'Servings', border: OutlineInputBorder()),
-                    keyboardType: TextInputType.number,
-                    validator: (v) => _optionalInt(v,
-                        min: 1, message: 'Enter a whole number of 1 or more'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _prep,
-                    decoration: const InputDecoration(
-                        labelText: 'Prep time (min)', border: OutlineInputBorder()),
-                    keyboardType: TextInputType.number,
+                      labelText: 'Title',
+                      border: OutlineInputBorder(),
+                    ),
+                    textInputAction: TextInputAction.next,
                     validator: (v) =>
-                        _optionalInt(v, message: 'Enter a whole number'),
+                        (v ?? '').trim().isEmpty ? 'Title is required' : null,
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _cook,
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _author,
                     decoration: const InputDecoration(
-                        labelText: 'Cook time (min)', border: OutlineInputBorder()),
-                    keyboardType: TextInputType.number,
-                    validator: (v) =>
-                        _optionalInt(v, message: 'Enter a whole number'),
+                      labelText: 'Author (optional)',
+                      border: OutlineInputBorder(),
+                    ),
+                    textInputAction: TextInputAction.next,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _ingredients,
-              decoration: const InputDecoration(
-                labelText: 'Ingredients (one per line)',
-                hintText: '200 g Mehl\n2 Eier\n1 Prise Salz',
-                border: OutlineInputBorder(),
-                alignLabelWithHint: true,
-              ),
-              minLines: 5,
-              maxLines: 12,
-              validator: (v) => _requiredLines(v, 'Add at least one ingredient'),
-            ),
-            const SizedBox(height: 12),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _servings,
+                          decoration: const InputDecoration(
+                            labelText: 'Servings',
+                            border: OutlineInputBorder(),
+                          ),
+                          keyboardType: TextInputType.number,
+                          validator: (v) => _optionalInt(
+                            v,
+                            min: 1,
+                            message: 'Enter a whole number of 1 or more',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _prep,
+                          decoration: const InputDecoration(
+                            labelText: 'Prep time (min)',
+                            border: OutlineInputBorder(),
+                          ),
+                          keyboardType: TextInputType.number,
+                          validator: (v) =>
+                              _optionalInt(v, message: 'Enter a whole number'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _cook,
+                          decoration: const InputDecoration(
+                            labelText: 'Cook time (min)',
+                            border: OutlineInputBorder(),
+                          ),
+                          keyboardType: TextInputType.number,
+                          validator: (v) =>
+                              _optionalInt(v, message: 'Enter a whole number'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _ingredients,
+                    decoration: const InputDecoration(
+                      labelText: 'Ingredients (one per line)',
+                      hintText: '200 g Mehl\n2 Eier\n1 Prise Salz',
+                      border: OutlineInputBorder(),
+                      alignLabelWithHint: true,
+                    ),
+                    minLines: 5,
+                    maxLines: 12,
+                    validator: (v) =>
+                        _requiredLines(v, 'Add at least one ingredient'),
+                  ),
+                  const SizedBox(height: 12),
                   TextFormField(
                     controller: _steps,
                     decoration: const InputDecoration(
                       labelText: 'Steps (one per line)',
-                      hintText: 'Mix the dry ingredients.\nAdd the eggs and stir.',
+                      hintText:
+                          'Mix the dry ingredients.\nAdd the eggs and stir.',
                       border: OutlineInputBorder(),
                       alignLabelWithHint: true,
                     ),
                     minLines: 5,
                     maxLines: 20,
-                    validator: (v) => _requiredLines(v, 'Add at least one step'),
+                    validator: (v) =>
+                        _requiredLines(v, 'Add at least one step'),
                   ),
                 ],
               ),
@@ -196,7 +229,8 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2))
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : const Icon(Icons.check),
                 label: Text(_saving ? 'Saving…' : 'Save'),
               ),
