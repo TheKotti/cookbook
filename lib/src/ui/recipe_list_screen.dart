@@ -13,6 +13,7 @@ import '../models/recipe.dart';
 import '../providers.dart';
 import 'import_screen.dart';
 import 'recipe_detail_screen.dart';
+import 'recipe_form_screen.dart';
 
 class RecipeListScreen extends ConsumerWidget {
   const RecipeListScreen({super.key});
@@ -40,9 +41,8 @@ class RecipeListScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.of(context)
-            .push(MaterialPageRoute(builder: (_) => const ImportScreen())),
-        tooltip: 'Import recipe',
+        onPressed: () => _showAddMenu(context),
+        tooltip: 'Add recipe',
         child: const Icon(Icons.add),
       ),
       body: Column(
@@ -52,7 +52,8 @@ class RecipeListScreen extends ConsumerWidget {
             child: SearchBar(
               hintText: 'Search recipes',
               leading: const Icon(Icons.search),
-              onChanged: (value) => ref.read(searchQueryProvider.notifier).set(value),
+              onChanged: (value) =>
+                  ref.read(searchQueryProvider.notifier).set(value),
             ),
           ),
           if (tags.isNotEmpty)
@@ -69,8 +70,9 @@ class RecipeListScreen extends ConsumerWidget {
                         child: FilterChip(
                           label: Text(tag),
                           selected: selectedTags.contains(tag),
-                          onSelected: (_) =>
-                              ref.read(selectedTagsProvider.notifier).toggle(tag),
+                          onSelected: (_) => ref
+                              .read(selectedTagsProvider.notifier)
+                              .toggle(tag),
                         ),
                       ),
                   ],
@@ -80,7 +82,8 @@ class RecipeListScreen extends ConsumerWidget {
           Expanded(
             child: recipes.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Center(child: Text('Something went wrong: $error')),
+              error: (error, _) =>
+                  Center(child: Text('Something went wrong: $error')),
               data: (list) {
                 if (list.isEmpty) {
                   final filtered = query.isNotEmpty || selectedTags.isNotEmpty;
@@ -88,15 +91,22 @@ class RecipeListScreen extends ConsumerWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(filtered ? Icons.search_off : Icons.menu_book_outlined, size: 56),
+                        Icon(
+                          filtered
+                              ? Icons.search_off
+                              : Icons.menu_book_outlined,
+                          size: 56,
+                        ),
                         const SizedBox(height: 12),
-                        Text(filtered ? 'No matching recipes' : 'No recipes yet',
-                            style: Theme.of(context).textTheme.titleMedium),
+                        Text(
+                          filtered ? 'No matching recipes' : 'No recipes yet',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           filtered
                               ? 'Try a different search or clear the tag filter.'
-                              : 'Tap + to import your first recipe from chefkoch.de.',
+                              : 'Tap + to import a recipe from chefkoch.de or add one manually.',
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -105,12 +115,46 @@ class RecipeListScreen extends ConsumerWidget {
                 }
                 return ListView.builder(
                   itemCount: list.length,
-                  itemBuilder: (context, index) => _RecipeCard(recipe: list[index]),
+                  itemBuilder: (context, index) =>
+                      _RecipeCard(recipe: list[index]),
                 );
               },
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showAddMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.link),
+              title: const Text('Import from URL'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (_) => const ImportScreen()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_note),
+              title: const Text('Add manually'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const RecipeFormScreen()),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -138,10 +182,16 @@ class RecipeListScreen extends ConsumerWidget {
       final file = picked?.files.single;
       if (file == null) return; // user cancelled
       final bytes = await file.readAsBytes();
-      final result = await ref.read(backupServiceProvider).importJson(utf8.decode(bytes));
-      messenger.showSnackBar(SnackBar(
-          content:
-              Text('Backup imported: ${result.added} added, ${result.updated} updated.')));
+      final result = await ref
+          .read(backupServiceProvider)
+          .importJson(utf8.decode(bytes));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Backup imported: ${result.added} added, ${result.updated} updated.',
+          ),
+        ),
+      );
     } on BackupException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
@@ -177,7 +227,10 @@ class _RecipeCard extends StatelessWidget {
         title: Text(recipe.title, maxLines: 2, overflow: TextOverflow.ellipsis),
         subtitle: recipe.tags.isEmpty ? null : Text(recipe.tags.join(' · ')),
         onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => RecipeDetailScreen(recipeId: recipe.id!))),
+          MaterialPageRoute(
+            builder: (_) => RecipeDetailScreen(recipeId: recipe.id!),
+          ),
+        ),
       ),
     );
   }

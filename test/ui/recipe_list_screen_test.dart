@@ -27,10 +27,12 @@ void main() {
   }
 
   testWidgets('shows empty state when no recipes exist', (tester) async {
-    await tester.pumpWidget(ProviderScope(
-      overrides: [databaseProvider.overrideWithValue(db)],
-      child: const MaterialApp(home: RecipeListScreen()),
-    ));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [databaseProvider.overrideWithValue(db)],
+        child: const MaterialApp(home: RecipeListScreen()),
+      ),
+    );
     await settle(tester);
     expect(find.text('No recipes yet'), findsOneWidget);
     expect(find.byIcon(Icons.add), findsOneWidget);
@@ -38,32 +40,40 @@ void main() {
   });
 
   testWidgets('lists recipes and filters via tag chip', (tester) async {
-    final container = ProviderContainer(overrides: [databaseProvider.overrideWithValue(db)]);
+    final container = ProviderContainer(
+      overrides: [databaseProvider.overrideWithValue(db)],
+    );
     addTearDown(container.dispose);
     final repo = container.read(recipeRepositoryProvider);
-    await repo.saveRecipe(model.Recipe(
-      sourceUrl: 'https://www.chefkoch.de/rezepte/1/a.html',
-      title: 'Lasagne',
-      author: 'x',
-      ingredients: const [],
-      steps: const [],
-      tags: const ['pasta'],
-      importedAt: DateTime.utc(2026, 7, 7),
-    ));
-    await repo.saveRecipe(model.Recipe(
-      sourceUrl: 'https://www.chefkoch.de/rezepte/2/b.html',
-      title: 'Salat',
-      author: 'x',
-      ingredients: const [],
-      steps: const [],
-      tags: const ['leicht'],
-      importedAt: DateTime.utc(2026, 7, 7),
-    ));
+    await repo.saveRecipe(
+      model.Recipe(
+        sourceUrl: 'https://www.chefkoch.de/rezepte/1/a.html',
+        title: 'Lasagne',
+        author: 'x',
+        ingredients: const [],
+        steps: const [],
+        tags: const ['pasta'],
+        importedAt: DateTime.utc(2026, 7, 7),
+      ),
+    );
+    await repo.saveRecipe(
+      model.Recipe(
+        sourceUrl: 'https://www.chefkoch.de/rezepte/2/b.html',
+        title: 'Salat',
+        author: 'x',
+        ingredients: const [],
+        steps: const [],
+        tags: const ['leicht'],
+        importedAt: DateTime.utc(2026, 7, 7),
+      ),
+    );
 
-    await tester.pumpWidget(UncontrolledProviderScope(
-      container: container,
-      child: const MaterialApp(home: RecipeListScreen()),
-    ));
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: RecipeListScreen()),
+      ),
+    );
     await settle(tester);
 
     expect(find.text('Lasagne'), findsOneWidget);
@@ -73,6 +83,28 @@ void main() {
     await settle(tester);
     expect(find.text('Lasagne'), findsOneWidget);
     expect(find.text('Salat'), findsNothing);
+    await flushTeardown(tester);
+  });
+
+  testWidgets('FAB opens a menu with import and manual-entry options', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [databaseProvider.overrideWithValue(db)],
+        child: const MaterialApp(home: RecipeListScreen()),
+      ),
+    );
+    await settle(tester);
+
+    await tester.tap(find.byType(FloatingActionButton));
+    await settle(tester);
+    expect(find.text('Import from URL'), findsOneWidget);
+    expect(find.text('Add manually'), findsOneWidget);
+
+    await tester.tap(find.text('Add manually'));
+    await settle(tester);
+    expect(find.text('Add recipe'), findsOneWidget);
     await flushTeardown(tester);
   });
 }
