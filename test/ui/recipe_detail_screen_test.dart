@@ -78,7 +78,11 @@ void main() {
   testWidgets('edit button opens the pre-filled form', (tester) async {
     await pumpDetail(tester, 'manual:123');
     await tester.tap(find.byIcon(Icons.edit_outlined));
-    await settle(tester);
+    await tester.pump();
+    // Flutter 3.44's default Android page transition (FadeForwards) runs
+    // 800 ms; pump past it so the detail route goes offstage and find.text
+    // no longer matches its ingredient line.
+    await tester.pump(const Duration(milliseconds: 900));
     expect(find.text('Edit recipe'), findsOneWidget);
     expect(find.text('200 g Mehl'), findsOneWidget);
     await flushTeardown(tester);
