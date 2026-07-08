@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/recipe.dart';
 import '../providers.dart';
 import '../scaling/serving_scaler.dart';
+import 'recipe_form_screen.dart';
 import 'tag_editor_sheet.dart';
 
 class RecipeDetailScreen extends ConsumerStatefulWidget {
@@ -31,14 +32,18 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete recipe?'),
-        content: Text('"${recipe.title}" will be removed from your collection.'),
+        content: Text(
+          '"${recipe.title}" will be removed from your collection.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Delete')),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
         ],
       ),
     );
@@ -59,7 +64,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     final base = recipe.baseServings;
     final target = _targetServings ?? base;
     final factor = (base != null && target != null) ? target / base : 1.0;
-    final author = recipe.author.isEmpty || recipe.author == 'Gelöschter Benutzer'
+    final author =
+        recipe.author.isEmpty || recipe.author == 'Gelöschter Benutzer'
         ? 'Unknown author'
         : recipe.author;
 
@@ -67,6 +73,15 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       appBar: AppBar(
         title: Text(recipe.title, maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Edit recipe',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => RecipeFormScreen(existing: recipe),
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             tooltip: 'Delete recipe',
@@ -83,28 +98,39 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               height: 220,
               fit: BoxFit.cover,
               placeholder: (_, _) => const SizedBox(
-                  height: 220, child: Center(child: CircularProgressIndicator())),
+                height: 220,
+                child: Center(child: CircularProgressIndicator()),
+              ),
               errorWidget: (_, _, _) => const SizedBox(
-                  height: 120, child: Center(child: Icon(Icons.restaurant, size: 48))),
+                height: 120,
+                child: Center(child: Icon(Icons.restaurant, size: 48)),
+              ),
             ),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(recipe.title, style: Theme.of(context).textTheme.headlineSmall),
-                const SizedBox(height: 4),
-                InkWell(
-                  onTap: () => launchUrl(Uri.parse(recipe.sourceUrl),
-                      mode: LaunchMode.externalApplication),
-                  child: Text(
-                    'By $author · chefkoch.de',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
+                Text(
+                  recipe.title,
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
+                const SizedBox(height: 4),
+                recipe.isManual
+                    ? Text('By $author')
+                    : InkWell(
+                        onTap: () => launchUrl(
+                          Uri.parse(recipe.sourceUrl),
+                          mode: LaunchMode.externalApplication,
+                        ),
+                        child: Text(
+                          'By $author · chefkoch.de',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 16,
@@ -112,20 +138,26 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   children: [
                     if (recipe.prepMinutes != null)
                       _InfoItem(
-                          icon: Icons.timer_outlined,
-                          text: 'Prep ${_formatMinutes(recipe.prepMinutes!)}'),
+                        icon: Icons.timer_outlined,
+                        text: 'Prep ${_formatMinutes(recipe.prepMinutes!)}',
+                      ),
                     if (recipe.cookMinutes != null)
                       _InfoItem(
-                          icon: Icons.soup_kitchen_outlined,
-                          text: 'Cook ${_formatMinutes(recipe.cookMinutes!)}'),
+                        icon: Icons.soup_kitchen_outlined,
+                        text: 'Cook ${_formatMinutes(recipe.cookMinutes!)}',
+                      ),
                     if (recipe.totalMinutes != null)
                       _InfoItem(
-                          icon: Icons.schedule,
-                          text: 'Total ${_formatMinutes(recipe.totalMinutes!)}'),
+                        icon: Icons.schedule,
+                        text: 'Total ${_formatMinutes(recipe.totalMinutes!)}',
+                      ),
                     if (recipe.rating != null)
                       _InfoItem(
-                          icon: Icons.star,
-                          text: recipe.rating!.toStringAsFixed(1).replaceAll('.', ',')),
+                        icon: Icons.star,
+                        text: recipe.rating!
+                            .toStringAsFixed(1)
+                            .replaceAll('.', ','),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -145,7 +177,10 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    Text('Ingredients', style: Theme.of(context).textTheme.titleLarge),
+                    Text(
+                      'Ingredients',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                     const Spacer(),
                     // Serving scaler is hidden entirely when yield is unknown (§7).
                     if (base != null) ...[
@@ -155,8 +190,10 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                             : null,
                         icon: const Icon(Icons.remove_circle_outline),
                       ),
-                      Text('$target servings',
-                          style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        '$target servings',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       IconButton(
                         onPressed: target < 99
                             ? () => setState(() => _targetServings = target + 1)
@@ -177,7 +214,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                           padding: EdgeInsets.only(top: 6, right: 8),
                           child: Icon(Icons.circle, size: 6),
                         ),
-                        Expanded(child: Text(ServingScaler.scaledLine(ingredient, factor))),
+                        Expanded(
+                          child: Text(
+                            ServingScaler.scaledLine(ingredient, factor),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -191,8 +232,12 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         CircleAvatar(
-                            radius: 12,
-                            child: Text('${index + 1}', style: const TextStyle(fontSize: 12))),
+                          radius: 12,
+                          child: Text(
+                            '${index + 1}',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
                         const SizedBox(width: 12),
                         Expanded(child: Text(step)),
                       ],

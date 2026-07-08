@@ -4,13 +4,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/recipe.dart';
 import '../providers.dart';
 
-/// Tags are the only editable field (§2).
-Future<void> showTagEditorSheet(BuildContext context, WidgetRef ref, Recipe recipe) {
+/// Tags are edited here (not in the recipe form) for imported and manual
+/// recipes alike.
+Future<void> showTagEditorSheet(
+  BuildContext context,
+  WidgetRef ref,
+  Recipe recipe,
+) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     builder: (sheetContext) => Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(sheetContext).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+      ),
       child: _TagEditor(recipe: recipe, ref: ref),
     ),
   );
@@ -45,15 +52,18 @@ class _TagEditorState extends State<_TagEditor> {
   }
 
   Future<void> _save() async {
-    await widget.ref.read(recipeRepositoryProvider).setTags(widget.recipe.id!, _tags);
+    await widget.ref
+        .read(recipeRepositoryProvider)
+        .setTags(widget.recipe.id!, _tags);
     if (mounted) Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
-    final suggestions = (widget.ref.read(allTagsProvider).value ?? const <String>[])
-        .where((t) => !_tags.contains(t))
-        .toList();
+    final suggestions =
+        (widget.ref.read(allTagsProvider).value ?? const <String>[])
+            .where((t) => !_tags.contains(t))
+            .toList();
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
