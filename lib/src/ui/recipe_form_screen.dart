@@ -1,5 +1,7 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../manual/manual_recipe.dart';
 import '../models/recipe.dart';
@@ -25,6 +27,8 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
   late final TextEditingController _cook;
   late final TextEditingController _ingredients;
   late final TextEditingController _steps;
+  late String? _localImagePath = widget.existing?.localImagePath;
+  final List<String> _orphanedPaths = [];
   bool _saving = false;
 
   @override
@@ -65,6 +69,52 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
     super.dispose();
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    final pickedPath = await ref.read(imagePickProvider)(source);
+    if (pickedPath == null) return;
+    final saved = await ref.read(imageStoreProvider).save(pickedPath);
+    setState(() {
+      if (_localImagePath != null) _orphanedPaths.add(_localImagePath!);
+      _localImagePath = saved;
+    });
+  }
+
+  void _showPhotoChooser() {
+    showModalBottomSheet(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take photo'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _removeImage() {
+    setState(() {
+      if (_localImagePath != null) _orphanedPaths.add(_localImagePath!);
+      _localImagePath = null;
+    });
+  }
+
   String? _optionalInt(String? value, {int min = 0, required String message}) {
     final text = value?.trim() ?? '';
     if (text.isEmpty) return null;
@@ -90,8 +140,16 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
         cookMinutes: int.tryParse(_cook.text.trim()),
         ingredientsText: _ingredients.text,
         stepsText: _steps.text,
+        localImagePath: _localImagePath,
       );
       final id = await ref.read(recipeRepositoryProvider).saveRecipe(recipe);
+      if (_orphanedPaths.isNotEmpty) {
+        final store = ref.read(imageStoreProvider);
+        for (final orphan in _orphanedPaths) {
+          if (orphan != _localImagePath) await store.delete(orphan);
+        }
+        _orphanedPaths.clear();
+      }
       if (!mounted) return;
       if (widget.existing == null) {
         Navigator.of(context).pushReplacement(
@@ -121,104 +179,167 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
         child: Column(
           children: [
             Expanded(
-              child: ListView(
+              // Not a lazy ListView: every form field must stay attached so
+              // FormState.validate() covers fields scrolled out of view.
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
-                children: [
-                  TextFormField(
-                    controller: _title,
-                    decoration: const InputDecoration(
-                      labelText: 'Title',
-                      border: OutlineInputBorder(),
-                    ),
-                    textInputAction: TextInputAction.next,
-                    validator: (v) =>
-                        (v ?? '').trim().isEmpty ? 'Title is required' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _author,
-                    decoration: const InputDecoration(
-                      labelText: 'Author (optional)',
-                      border: OutlineInputBorder(),
-                    ),
-                    textInputAction: TextInputAction.next,
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _servings,
-                          decoration: const InputDecoration(
-                            labelText: 'Servings',
-                            border: OutlineInputBorder(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (_localImagePath != null)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.file(
+                              ref
+                                  .read(imageStoreProvider)
+                                  .resolve(_localImagePath!),
+                              height: 180,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => const SizedBox(
+                                height: 120,
+                                child: Center(child: Icon(Icons.broken_image)),
+                              ),
+                            ),
+                          )
+                        else if (widget.existing?.imageUrl != null)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: CachedNetworkImage(
+                              imageUrl: widget.existing!.imageUrl!,
+                              height: 180,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, _, _) => const SizedBox(
+                                height: 120,
+                                child: Center(child: Icon(Icons.restaurant)),
+                              ),
+                            ),
                           ),
-                          keyboardType: TextInputType.number,
-                          validator: (v) => _optionalInt(
-                            v,
-                            min: 1,
-                            message: 'Enter a whole number of 1 or more',
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            TextButton.icon(
+                              onPressed: _showPhotoChooser,
+                              icon: const Icon(Icons.add_a_photo_outlined),
+                              label: Text(
+                                _localImagePath == null
+                                    ? 'Add photo'
+                                    : 'Change',
+                              ),
+                            ),
+                            if (_localImagePath != null)
+                              TextButton.icon(
+                                onPressed: _removeImage,
+                                icon: const Icon(Icons.delete_outline),
+                                label: const Text('Remove'),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _title,
+                      decoration: const InputDecoration(
+                        labelText: 'Title',
+                        border: OutlineInputBorder(),
+                      ),
+                      textInputAction: TextInputAction.next,
+                      validator: (v) =>
+                          (v ?? '').trim().isEmpty ? 'Title is required' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _author,
+                      decoration: const InputDecoration(
+                        labelText: 'Author (optional)',
+                        border: OutlineInputBorder(),
+                      ),
+                      textInputAction: TextInputAction.next,
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _servings,
+                            decoration: const InputDecoration(
+                              labelText: 'Servings',
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.number,
+                            validator: (v) => _optionalInt(
+                              v,
+                              min: 1,
+                              message: 'Enter a whole number of 1 or more',
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _prep,
-                          decoration: const InputDecoration(
-                            labelText: 'Prep time (min)',
-                            border: OutlineInputBorder(),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _prep,
+                            decoration: const InputDecoration(
+                              labelText: 'Prep time (min)',
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.number,
+                            validator: (v) => _optionalInt(
+                              v,
+                              message: 'Enter a whole number',
+                            ),
                           ),
-                          keyboardType: TextInputType.number,
-                          validator: (v) =>
-                              _optionalInt(v, message: 'Enter a whole number'),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _cook,
-                          decoration: const InputDecoration(
-                            labelText: 'Cook time (min)',
-                            border: OutlineInputBorder(),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _cook,
+                            decoration: const InputDecoration(
+                              labelText: 'Cook time (min)',
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.number,
+                            validator: (v) => _optionalInt(
+                              v,
+                              message: 'Enter a whole number',
+                            ),
                           ),
-                          keyboardType: TextInputType.number,
-                          validator: (v) =>
-                              _optionalInt(v, message: 'Enter a whole number'),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _ingredients,
+                      decoration: const InputDecoration(
+                        labelText: 'Ingredients (one per line)',
+                        hintText: '200 g Mehl\n2 Eier\n1 Prise Salz',
+                        border: OutlineInputBorder(),
+                        alignLabelWithHint: true,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _ingredients,
-                    decoration: const InputDecoration(
-                      labelText: 'Ingredients (one per line)',
-                      hintText: '200 g Mehl\n2 Eier\n1 Prise Salz',
-                      border: OutlineInputBorder(),
-                      alignLabelWithHint: true,
+                      minLines: 5,
+                      maxLines: 12,
+                      validator: (v) =>
+                          _requiredLines(v, 'Add at least one ingredient'),
                     ),
-                    minLines: 5,
-                    maxLines: 12,
-                    validator: (v) =>
-                        _requiredLines(v, 'Add at least one ingredient'),
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _steps,
-                    decoration: const InputDecoration(
-                      labelText: 'Steps (one per line)',
-                      hintText:
-                          'Mix the dry ingredients.\nAdd the eggs and stir.',
-                      border: OutlineInputBorder(),
-                      alignLabelWithHint: true,
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _steps,
+                      decoration: const InputDecoration(
+                        labelText: 'Steps (one per line)',
+                        hintText:
+                            'Mix the dry ingredients.\nAdd the eggs and stir.',
+                        border: OutlineInputBorder(),
+                        alignLabelWithHint: true,
+                      ),
+                      minLines: 5,
+                      maxLines: 20,
+                      validator: (v) =>
+                          _requiredLines(v, 'Add at least one step'),
                     ),
-                    minLines: 5,
-                    maxLines: 20,
-                    validator: (v) =>
-                        _requiredLines(v, 'Add at least one step'),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             Padding(

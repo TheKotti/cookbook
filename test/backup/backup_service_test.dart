@@ -13,6 +13,7 @@ model.Recipe makeRecipe(String url, String title, {List<String> tags = const ['p
       title: title,
       author: 'tester',
       imageUrl: 'https://img.chefkoch-cdn.de/x.jpg',
+      localImagePath: 'images/backup.jpg',
       baseServings: 2,
       prepMinutes: 15,
       rating: 4.5,
@@ -49,6 +50,7 @@ void main() {
     final r = recipes.first as Map<String, dynamic>;
     expect(r['source_url'], 'https://www.chefkoch.de/rezepte/1/a.html');
     expect(r['title'], 'A');
+    expect(r['local_image_path'], 'images/backup.jpg');
     expect(r['base_servings'], 2);
     expect(r['prep_minutes'], 15);
     expect(r['cook_minutes'], isNull);
@@ -103,7 +105,28 @@ void main() {
     expect(restored.steps, original.steps);
     expect(restored.tags, original.tags);
     expect(restored.importedAt, original.importedAt);
+    expect(restored.localImagePath, original.localImagePath);
     await db2.close();
+  });
+
+  test('v1 backup without local_image_path imports fine', () async {
+    final v1 = jsonEncode({
+      'app': 'cookbook',
+      'format_version': 1,
+      'exported_at': '2026-07-10T00:00:00.000Z',
+      'recipes': [
+        {
+          'source_url': 'https://www.chefkoch.de/rezepte/9/v1.html',
+          'title': 'Alt',
+          'ingredients': [],
+          'steps': [],
+          'tags': [],
+        }
+      ]
+    });
+    final result = await service.importJson(v1);
+    expect(result.added, 1);
+    expect((await repo.getAllRecipes()).single.localImagePath, isNull);
   });
 
   test('unknown format_version is rejected without partial import (§8)', () async {

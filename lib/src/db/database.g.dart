@@ -159,6 +159,17 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _localImagePathMeta = const VerificationMeta(
+    'localImagePath',
+  );
+  @override
+  late final GeneratedColumn<String> localImagePath = GeneratedColumn<String>(
+    'local_image_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -175,6 +186,7 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
     stepsJson,
     importedAt,
     schemaVersion,
+    localImagePath,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -301,6 +313,15 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
     } else if (isInserting) {
       context.missing(_schemaVersionMeta);
     }
+    if (data.containsKey('local_image_path')) {
+      context.handle(
+        _localImagePathMeta,
+        localImagePath.isAcceptableOrUnknown(
+          data['local_image_path']!,
+          _localImagePathMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -366,6 +387,10 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
         DriftSqlType.int,
         data['${effectivePrefix}schema_version'],
       )!,
+      localImagePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_image_path'],
+      ),
     );
   }
 
@@ -390,6 +415,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
   final String stepsJson;
   final String importedAt;
   final int schemaVersion;
+  final String? localImagePath;
   const Recipe({
     required this.id,
     required this.sourceUrl,
@@ -405,6 +431,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     required this.stepsJson,
     required this.importedAt,
     required this.schemaVersion,
+    this.localImagePath,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -435,6 +462,9 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     map['steps_json'] = Variable<String>(stepsJson);
     map['imported_at'] = Variable<String>(importedAt);
     map['schema_version'] = Variable<int>(schemaVersion);
+    if (!nullToAbsent || localImagePath != null) {
+      map['local_image_path'] = Variable<String>(localImagePath);
+    }
     return map;
   }
 
@@ -466,6 +496,9 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       stepsJson: Value(stepsJson),
       importedAt: Value(importedAt),
       schemaVersion: Value(schemaVersion),
+      localImagePath: localImagePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(localImagePath),
     );
   }
 
@@ -489,6 +522,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       stepsJson: serializer.fromJson<String>(json['stepsJson']),
       importedAt: serializer.fromJson<String>(json['importedAt']),
       schemaVersion: serializer.fromJson<int>(json['schemaVersion']),
+      localImagePath: serializer.fromJson<String?>(json['localImagePath']),
     );
   }
   @override
@@ -509,6 +543,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       'stepsJson': serializer.toJson<String>(stepsJson),
       'importedAt': serializer.toJson<String>(importedAt),
       'schemaVersion': serializer.toJson<int>(schemaVersion),
+      'localImagePath': serializer.toJson<String?>(localImagePath),
     };
   }
 
@@ -527,6 +562,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     String? stepsJson,
     String? importedAt,
     int? schemaVersion,
+    Value<String?> localImagePath = const Value.absent(),
   }) => Recipe(
     id: id ?? this.id,
     sourceUrl: sourceUrl ?? this.sourceUrl,
@@ -542,6 +578,9 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     stepsJson: stepsJson ?? this.stepsJson,
     importedAt: importedAt ?? this.importedAt,
     schemaVersion: schemaVersion ?? this.schemaVersion,
+    localImagePath: localImagePath.present
+        ? localImagePath.value
+        : this.localImagePath,
   );
   Recipe copyWithCompanion(RecipesCompanion data) {
     return Recipe(
@@ -573,6 +612,9 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       schemaVersion: data.schemaVersion.present
           ? data.schemaVersion.value
           : this.schemaVersion,
+      localImagePath: data.localImagePath.present
+          ? data.localImagePath.value
+          : this.localImagePath,
     );
   }
 
@@ -592,7 +634,8 @@ class Recipe extends DataClass implements Insertable<Recipe> {
           ..write('ingredientsJson: $ingredientsJson, ')
           ..write('stepsJson: $stepsJson, ')
           ..write('importedAt: $importedAt, ')
-          ..write('schemaVersion: $schemaVersion')
+          ..write('schemaVersion: $schemaVersion, ')
+          ..write('localImagePath: $localImagePath')
           ..write(')'))
         .toString();
   }
@@ -613,6 +656,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     stepsJson,
     importedAt,
     schemaVersion,
+    localImagePath,
   );
   @override
   bool operator ==(Object other) =>
@@ -631,7 +675,8 @@ class Recipe extends DataClass implements Insertable<Recipe> {
           other.ingredientsJson == this.ingredientsJson &&
           other.stepsJson == this.stepsJson &&
           other.importedAt == this.importedAt &&
-          other.schemaVersion == this.schemaVersion);
+          other.schemaVersion == this.schemaVersion &&
+          other.localImagePath == this.localImagePath);
 }
 
 class RecipesCompanion extends UpdateCompanion<Recipe> {
@@ -649,6 +694,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
   final Value<String> stepsJson;
   final Value<String> importedAt;
   final Value<int> schemaVersion;
+  final Value<String?> localImagePath;
   const RecipesCompanion({
     this.id = const Value.absent(),
     this.sourceUrl = const Value.absent(),
@@ -664,6 +710,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     this.stepsJson = const Value.absent(),
     this.importedAt = const Value.absent(),
     this.schemaVersion = const Value.absent(),
+    this.localImagePath = const Value.absent(),
   });
   RecipesCompanion.insert({
     this.id = const Value.absent(),
@@ -680,6 +727,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     required String stepsJson,
     required String importedAt,
     required int schemaVersion,
+    this.localImagePath = const Value.absent(),
   }) : sourceUrl = Value(sourceUrl),
        title = Value(title),
        author = Value(author),
@@ -702,6 +750,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     Expression<String>? stepsJson,
     Expression<String>? importedAt,
     Expression<int>? schemaVersion,
+    Expression<String>? localImagePath,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -718,6 +767,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
       if (stepsJson != null) 'steps_json': stepsJson,
       if (importedAt != null) 'imported_at': importedAt,
       if (schemaVersion != null) 'schema_version': schemaVersion,
+      if (localImagePath != null) 'local_image_path': localImagePath,
     });
   }
 
@@ -736,6 +786,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     Value<String>? stepsJson,
     Value<String>? importedAt,
     Value<int>? schemaVersion,
+    Value<String?>? localImagePath,
   }) {
     return RecipesCompanion(
       id: id ?? this.id,
@@ -752,6 +803,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
       stepsJson: stepsJson ?? this.stepsJson,
       importedAt: importedAt ?? this.importedAt,
       schemaVersion: schemaVersion ?? this.schemaVersion,
+      localImagePath: localImagePath ?? this.localImagePath,
     );
   }
 
@@ -800,6 +852,9 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     if (schemaVersion.present) {
       map['schema_version'] = Variable<int>(schemaVersion.value);
     }
+    if (localImagePath.present) {
+      map['local_image_path'] = Variable<String>(localImagePath.value);
+    }
     return map;
   }
 
@@ -819,7 +874,8 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
           ..write('ingredientsJson: $ingredientsJson, ')
           ..write('stepsJson: $stepsJson, ')
           ..write('importedAt: $importedAt, ')
-          ..write('schemaVersion: $schemaVersion')
+          ..write('schemaVersion: $schemaVersion, ')
+          ..write('localImagePath: $localImagePath')
           ..write(')'))
         .toString();
   }
@@ -1038,16 +1094,272 @@ class RecipeTagsCompanion extends UpdateCompanion<RecipeTag> {
   }
 }
 
+class $ShoppingItemsTable extends ShoppingItems
+    with TableInfo<$ShoppingItemsTable, ShoppingItem> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ShoppingItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<String> createdAt = GeneratedColumn<String>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, content, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'shopping_items';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ShoppingItem> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ShoppingItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ShoppingItem(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ShoppingItemsTable createAlias(String alias) {
+    return $ShoppingItemsTable(attachedDatabase, alias);
+  }
+}
+
+class ShoppingItem extends DataClass implements Insertable<ShoppingItem> {
+  final int id;
+  final String content;
+  final String createdAt;
+  const ShoppingItem({
+    required this.id,
+    required this.content,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['content'] = Variable<String>(content);
+    map['created_at'] = Variable<String>(createdAt);
+    return map;
+  }
+
+  ShoppingItemsCompanion toCompanion(bool nullToAbsent) {
+    return ShoppingItemsCompanion(
+      id: Value(id),
+      content: Value(content),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ShoppingItem.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ShoppingItem(
+      id: serializer.fromJson<int>(json['id']),
+      content: serializer.fromJson<String>(json['content']),
+      createdAt: serializer.fromJson<String>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'content': serializer.toJson<String>(content),
+      'createdAt': serializer.toJson<String>(createdAt),
+    };
+  }
+
+  ShoppingItem copyWith({int? id, String? content, String? createdAt}) =>
+      ShoppingItem(
+        id: id ?? this.id,
+        content: content ?? this.content,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  ShoppingItem copyWithCompanion(ShoppingItemsCompanion data) {
+    return ShoppingItem(
+      id: data.id.present ? data.id.value : this.id,
+      content: data.content.present ? data.content.value : this.content,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ShoppingItem(')
+          ..write('id: $id, ')
+          ..write('content: $content, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, content, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ShoppingItem &&
+          other.id == this.id &&
+          other.content == this.content &&
+          other.createdAt == this.createdAt);
+}
+
+class ShoppingItemsCompanion extends UpdateCompanion<ShoppingItem> {
+  final Value<int> id;
+  final Value<String> content;
+  final Value<String> createdAt;
+  const ShoppingItemsCompanion({
+    this.id = const Value.absent(),
+    this.content = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  ShoppingItemsCompanion.insert({
+    this.id = const Value.absent(),
+    required String content,
+    required String createdAt,
+  }) : content = Value(content),
+       createdAt = Value(createdAt);
+  static Insertable<ShoppingItem> custom({
+    Expression<int>? id,
+    Expression<String>? content,
+    Expression<String>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (content != null) 'content': content,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  ShoppingItemsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? content,
+    Value<String>? createdAt,
+  }) {
+    return ShoppingItemsCompanion(
+      id: id ?? this.id,
+      content: content ?? this.content,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<String>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ShoppingItemsCompanion(')
+          ..write('id: $id, ')
+          ..write('content: $content, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $RecipesTable recipes = $RecipesTable(this);
   late final $RecipeTagsTable recipeTags = $RecipeTagsTable(this);
+  late final $ShoppingItemsTable shoppingItems = $ShoppingItemsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [recipes, recipeTags];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    recipes,
+    recipeTags,
+    shoppingItems,
+  ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
     WritePropagation(
@@ -1076,6 +1388,7 @@ typedef $$RecipesTableCreateCompanionBuilder =
       required String stepsJson,
       required String importedAt,
       required int schemaVersion,
+      Value<String?> localImagePath,
     });
 typedef $$RecipesTableUpdateCompanionBuilder =
     RecipesCompanion Function({
@@ -1093,6 +1406,7 @@ typedef $$RecipesTableUpdateCompanionBuilder =
       Value<String> stepsJson,
       Value<String> importedAt,
       Value<int> schemaVersion,
+      Value<String?> localImagePath,
     });
 
 final class $$RecipesTableReferences
@@ -1194,6 +1508,11 @@ class $$RecipesTableFilterComposer
 
   ColumnFilters<int> get schemaVersion => $composableBuilder(
     column: $table.schemaVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localImagePath => $composableBuilder(
+    column: $table.localImagePath,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1301,6 +1620,11 @@ class $$RecipesTableOrderingComposer
     column: $table.schemaVersion,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get localImagePath => $composableBuilder(
+    column: $table.localImagePath,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$RecipesTableAnnotationComposer
@@ -1365,6 +1689,11 @@ class $$RecipesTableAnnotationComposer
 
   GeneratedColumn<int> get schemaVersion => $composableBuilder(
     column: $table.schemaVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get localImagePath => $composableBuilder(
+    column: $table.localImagePath,
     builder: (column) => column,
   );
 
@@ -1436,6 +1765,7 @@ class $$RecipesTableTableManager
                 Value<String> stepsJson = const Value.absent(),
                 Value<String> importedAt = const Value.absent(),
                 Value<int> schemaVersion = const Value.absent(),
+                Value<String?> localImagePath = const Value.absent(),
               }) => RecipesCompanion(
                 id: id,
                 sourceUrl: sourceUrl,
@@ -1451,6 +1781,7 @@ class $$RecipesTableTableManager
                 stepsJson: stepsJson,
                 importedAt: importedAt,
                 schemaVersion: schemaVersion,
+                localImagePath: localImagePath,
               ),
           createCompanionCallback:
               ({
@@ -1468,6 +1799,7 @@ class $$RecipesTableTableManager
                 required String stepsJson,
                 required String importedAt,
                 required int schemaVersion,
+                Value<String?> localImagePath = const Value.absent(),
               }) => RecipesCompanion.insert(
                 id: id,
                 sourceUrl: sourceUrl,
@@ -1483,6 +1815,7 @@ class $$RecipesTableTableManager
                 stepsJson: stepsJson,
                 importedAt: importedAt,
                 schemaVersion: schemaVersion,
+                localImagePath: localImagePath,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -1795,6 +2128,162 @@ typedef $$RecipeTagsTableProcessedTableManager =
       RecipeTag,
       PrefetchHooks Function({bool recipeId})
     >;
+typedef $$ShoppingItemsTableCreateCompanionBuilder =
+    ShoppingItemsCompanion Function({
+      Value<int> id,
+      required String content,
+      required String createdAt,
+    });
+typedef $$ShoppingItemsTableUpdateCompanionBuilder =
+    ShoppingItemsCompanion Function({
+      Value<int> id,
+      Value<String> content,
+      Value<String> createdAt,
+    });
+
+class $$ShoppingItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $ShoppingItemsTable> {
+  $$ShoppingItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ShoppingItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ShoppingItemsTable> {
+  $$ShoppingItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ShoppingItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ShoppingItemsTable> {
+  $$ShoppingItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<String> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$ShoppingItemsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ShoppingItemsTable,
+          ShoppingItem,
+          $$ShoppingItemsTableFilterComposer,
+          $$ShoppingItemsTableOrderingComposer,
+          $$ShoppingItemsTableAnnotationComposer,
+          $$ShoppingItemsTableCreateCompanionBuilder,
+          $$ShoppingItemsTableUpdateCompanionBuilder,
+          (
+            ShoppingItem,
+            BaseReferences<_$AppDatabase, $ShoppingItemsTable, ShoppingItem>,
+          ),
+          ShoppingItem,
+          PrefetchHooks Function()
+        > {
+  $$ShoppingItemsTableTableManager(_$AppDatabase db, $ShoppingItemsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ShoppingItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ShoppingItemsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ShoppingItemsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> content = const Value.absent(),
+                Value<String> createdAt = const Value.absent(),
+              }) => ShoppingItemsCompanion(
+                id: id,
+                content: content,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String content,
+                required String createdAt,
+              }) => ShoppingItemsCompanion.insert(
+                id: id,
+                content: content,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ShoppingItemsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ShoppingItemsTable,
+      ShoppingItem,
+      $$ShoppingItemsTableFilterComposer,
+      $$ShoppingItemsTableOrderingComposer,
+      $$ShoppingItemsTableAnnotationComposer,
+      $$ShoppingItemsTableCreateCompanionBuilder,
+      $$ShoppingItemsTableUpdateCompanionBuilder,
+      (
+        ShoppingItem,
+        BaseReferences<_$AppDatabase, $ShoppingItemsTable, ShoppingItem>,
+      ),
+      ShoppingItem,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -1803,4 +2292,6 @@ class $AppDatabaseManager {
       $$RecipesTableTableManager(_db, _db.recipes);
   $$RecipeTagsTableTableManager get recipeTags =>
       $$RecipeTagsTableTableManager(_db, _db.recipeTags);
+  $$ShoppingItemsTableTableManager get shoppingItems =>
+      $$ShoppingItemsTableTableManager(_db, _db.shoppingItems);
 }

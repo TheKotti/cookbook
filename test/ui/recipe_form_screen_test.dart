@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:cookbook/src/db/database.dart';
+import 'package:cookbook/src/images/image_store.dart';
 import 'package:cookbook/src/models/recipe.dart' as model;
 import 'package:cookbook/src/providers.dart';
 import 'package:cookbook/src/ui/recipe_detail_screen.dart';
@@ -7,6 +10,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 
 void main() {
   late AppDatabase db;
@@ -156,4 +160,85 @@ void main() {
     expect(find.byType(RecipeDetailScreen), findsNothing);
     await flushTeardown(tester);
   });
+
+  testWidgets('picking a photo saves a local path; Remove clears it', (
+    tester,
+  ) async {
+    // Real file copying is covered by image_store_test.dart; the widget test
+    // uses an in-memory fake because dart:io futures don't resolve inside
+    // testWidgets' fake-async zone.
+    final store = _FakeImageStore();
+
+    final container = ProviderContainer(
+      overrides: [
+        databaseProvider.overrideWithValue(db),
+        imageStoreProvider.overrideWithValue(store),
+        imagePickProvider.overrideWithValue((source) async => '/fake/picked.jpg'),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: RecipeFormScreen()),
+      ),
+    );
+    await tester.pump();
+
+    // Pick via the gallery option in the chooser sheet.
+    await tester.tap(find.text('Add photo'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choose from gallery'));
+    await tester.pumpAndSettle();
+    expect(find.text('Remove'), findsOneWidget);
+
+    // Remove clears the preview again.
+    await tester.tap(find.text('Remove'));
+    await tester.pumpAndSettle();
+    expect(find.text('Remove'), findsNothing);
+    expect(find.text('Add photo'), findsOneWidget);
+
+    // Pick again, fill required fields, and save.
+    await tester.tap(find.text('Add photo'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choose from gallery'));
+    await tester.pumpAndSettle();
+
+    await enterField(tester, 'Title', 'Mit Foto');
+    await enterField(tester, 'Ingredients (one per line)', 'Salz');
+    await enterField(tester, 'Steps (one per line)', 'Mix.');
+    await tester.ensureVisible(find.text('Save'));
+    await tester.tap(find.text('Save'));
+    await settle(tester);
+    await tester.pump(const Duration(milliseconds: 900)); // page transition
+
+    final saved = (await container
+            .read(recipeRepositoryProvider)
+            .getAllRecipes())
+        .single;
+    expect(saved.localImagePath, startsWith('images/'));
+    // The first (removed) pick was cleaned up on save; the final one remains.
+    expect(store.stored, [saved.localImagePath]);
+    await flushTeardown(tester);
+  });
+}
+
+/// In-memory ImageStore: no real file IO, so it works under fake async.
+class _FakeImageStore extends ImageStore {
+  _FakeImageStore() : super(Directory.systemTemp);
+  int _counter = 0;
+  final List<String> stored = [];
+
+  @override
+  Future<String> save(String sourceFilePath) async {
+    final rel = p.join('images', 'fake${_counter++}.jpg');
+    stored.add(rel);
+    return rel;
+  }
+
+  @override
+  Future<void> delete(String relativePath) async {
+    stored.remove(relativePath);
+  }
 }

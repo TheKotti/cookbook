@@ -56,6 +56,7 @@ class Recipe {
   final String title;
   final String author;
   final String? imageUrl;
+  final String? localImagePath;
   final int? baseServings;
   final int? prepMinutes;
   final int? cookMinutes;
@@ -73,6 +74,7 @@ class Recipe {
     required this.title,
     required this.author,
     this.imageUrl,
+    this.localImagePath,
     this.baseServings,
     this.prepMinutes,
     this.cookMinutes,
@@ -85,12 +87,13 @@ class Recipe {
     this.schemaVersion = kCurrentSchemaVersion,
   });
 
-  Recipe copyWith({int? id, List<String>? tags}) => Recipe(
+  Recipe copyWith({int? id, List<String>? tags, String? localImagePath}) => Recipe(
         id: id ?? this.id,
         sourceUrl: sourceUrl,
         title: title,
         author: author,
         imageUrl: imageUrl,
+        localImagePath: localImagePath ?? this.localImagePath,
         baseServings: baseServings,
         prepMinutes: prepMinutes,
         cookMinutes: cookMinutes,

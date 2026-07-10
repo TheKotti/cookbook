@@ -24,6 +24,10 @@ abstract class RecipeRepository {
 
   Future<void> deleteRecipe(int id);
   Future<void> setTags(int recipeId, List<String> tags);
+
+  /// v1.1: the user's own 1-5 star rating; null clears it. Ratings are no
+  /// longer imported (spec §2).
+  Future<void> setRating(int recipeId, double? rating);
   Stream<List<String>> watchAllTags();
 }
 

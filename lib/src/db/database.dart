@@ -17,6 +17,7 @@ class Recipes extends Table {
   TextColumn get stepsJson => text()();
   TextColumn get importedAt => text()();
   IntColumn get schemaVersion => integer()();
+  TextColumn get localImagePath => text().nullable()();
 }
 
 class RecipeTags extends Table {
@@ -28,12 +29,20 @@ class RecipeTags extends Table {
   Set<Column> get primaryKey => {recipeId, tag};
 }
 
-@DriftDatabase(tables: [Recipes, RecipeTags])
+class ShoppingItems extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  // Named `content` because a getter called `text` would shadow drift's
+  // text() column builder.
+  TextColumn get content => text()();
+  TextColumn get createdAt => text()(); // ISO-8601
+}
+
+@DriftDatabase(tables: [Recipes, RecipeTags, ShoppingItems])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -44,6 +53,12 @@ class AppDatabase extends _$AppDatabase {
             "title, tags, ingredients, "
             "tokenize = 'unicode61 remove_diacritics 2')",
           );
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(recipes, recipes.localImagePath);
+            await m.createTable(shoppingItems);
+          }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');

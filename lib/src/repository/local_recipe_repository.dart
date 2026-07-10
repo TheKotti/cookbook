@@ -19,6 +19,7 @@ class LocalRecipeRepository implements RecipeRepository {
         title: Value(recipe.title),
         author: Value(recipe.author),
         imageUrl: Value(recipe.imageUrl),
+        localImagePath: Value(recipe.localImagePath),
         baseServings: Value(recipe.baseServings),
         prepMinutes: Value(recipe.prepMinutes),
         cookMinutes: Value(recipe.cookMinutes),
@@ -68,6 +69,14 @@ class LocalRecipeRepository implements RecipeRepository {
       await (db.update(db.recipes)..where((r) => r.id.equals(recipeId)))
           .write(RecipesCompanion(title: Value(row.title)));
     });
+  }
+
+  @override
+  Future<void> setRating(int recipeId, double? rating) async {
+    // A single write already notifies watchers; rating is not in the FTS
+    // index, so no FTS rewrite here.
+    await (db.update(db.recipes)..where((r) => r.id.equals(recipeId)))
+        .write(RecipesCompanion(rating: Value(rating)));
   }
 
   @override
@@ -170,6 +179,7 @@ class LocalRecipeRepository implements RecipeRepository {
         title: row.title,
         author: row.author,
         imageUrl: row.imageUrl,
+        localImagePath: row.localImagePath,
         baseServings: row.baseServings,
         prepMinutes: row.prepMinutes,
         cookMinutes: row.cookMinutes,

@@ -1,13 +1,18 @@
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
 import 'backup/backup_service.dart';
 import 'db/database.dart' show AppDatabase;
+import 'images/image_store.dart';
 import 'import/import_service.dart';
 import 'models/recipe.dart';
+import 'models/shopping_item.dart';
 import 'repository/local_recipe_repository.dart';
+import 'repository/local_shopping_repository.dart';
 import 'repository/recipe_repository.dart';
+import 'repository/shopping_repository.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase(driftDatabase(name: 'cookbook'));
@@ -63,3 +68,19 @@ final allTagsProvider = StreamProvider<List<String>>(
 
 final recipeDetailProvider = StreamProvider.family<Recipe?, int>(
     (ref, id) => ref.watch(recipeRepositoryProvider).watchRecipe(id));
+
+/// Real value is injected in main() (and in tests) because resolving the
+/// documents directory is async platform work.
+final imageStoreProvider = Provider<ImageStore>(
+    (ref) => throw UnimplementedError('imageStoreProvider must be overridden'));
+
+/// Returns the picked file's path, or null when the user cancels.
+final imagePickProvider = Provider<Future<String?> Function(ImageSource source)>(
+    (ref) => (source) async =>
+        (await ImagePicker().pickImage(source: source, maxWidth: 1600))?.path);
+
+final shoppingRepositoryProvider = Provider<ShoppingRepository>(
+    (ref) => LocalShoppingRepository(ref.watch(databaseProvider)));
+
+final shoppingItemsProvider = StreamProvider<List<ShoppingItem>>(
+    (ref) => ref.watch(shoppingRepositoryProvider).watchItems());

@@ -1,13 +1,12 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../models/recipe.dart';
 import '../providers.dart';
 import '../scaling/serving_scaler.dart';
 import 'recipe_form_screen.dart';
 import 'tag_editor_sheet.dart';
+import 'widgets/recipe_image.dart';
 
 class RecipeDetailScreen extends ConsumerStatefulWidget {
   final int recipeId;
@@ -25,6 +24,21 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     final h = minutes ~/ 60;
     final m = minutes % 60;
     return m == 0 ? '$h h' : '$h h $m min';
+  }
+
+  Future<void> _addToShoppingList(Ingredient ingredient, double factor) async {
+    final repo = ref.read(shoppingRepositoryProvider);
+    final id = await repo.addItem(ServingScaler.scaledLine(ingredient, factor));
+    if (!mounted || id == -1) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Added to shopping list'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () => repo.removeItem(id),
+        ),
+      ),
+    );
   }
 
   Future<void> _confirmDelete(Recipe recipe) async {
@@ -48,7 +62,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       ),
     );
     if (confirmed == true && mounted) {
+      final localImagePath = recipe.localImagePath;
       await ref.read(recipeRepositoryProvider).deleteRecipe(recipe.id!);
+      if (localImagePath != null) {
+        await ref.read(imageStoreProvider).delete(localImagePath);
+      }
       if (mounted) Navigator.of(context).pop();
     }
   }
@@ -92,20 +110,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       body: ListView(
         padding: const EdgeInsets.only(bottom: 32),
         children: [
-          if (recipe.imageUrl != null)
-            CachedNetworkImage(
-              imageUrl: recipe.imageUrl!,
-              height: 220,
-              fit: BoxFit.cover,
-              placeholder: (_, _) => const SizedBox(
-                height: 220,
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              errorWidget: (_, _, _) => const SizedBox(
-                height: 120,
-                child: Center(child: Icon(Icons.restaurant, size: 48)),
-              ),
-            ),
+          if (recipe.localImagePath != null || recipe.imageUrl != null)
+            RecipeImage(recipe: recipe, height: 220, width: double.infinity),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -116,21 +122,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 4),
-                recipe.isManual
-                    ? Text('By $author')
-                    : InkWell(
-                        onTap: () => launchUrl(
-                          Uri.parse(recipe.sourceUrl),
-                          mode: LaunchMode.externalApplication,
-                        ),
-                        child: Text(
-                          'By $author · chefkoch.de',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
+                Text('By $author'),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 16,
@@ -151,12 +143,29 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                         icon: Icons.schedule,
                         text: 'Total ${_formatMinutes(recipe.totalMinutes!)}',
                       ),
-                    if (recipe.rating != null)
-                      _InfoItem(
-                        icon: Icons.star,
-                        text: recipe.rating!
-                            .toStringAsFixed(1)
-                            .replaceAll('.', ','),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    for (var star = 1; star <= 5; star++)
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        tooltip: 'Rate $star of 5',
+                        icon: Icon(
+                          star <= (recipe.rating ?? 0)
+                              ? Icons.star
+                              : Icons.star_border,
+                          color: Colors.amber,
+                        ),
+                        onPressed: () =>
+                            ref.read(recipeRepositoryProvider).setRating(
+                                  recipe.id!,
+                                  recipe.rating == star.toDouble()
+                                      ? null
+                                      : star.toDouble(),
+                                ),
                       ),
                   ],
                 ),
@@ -205,22 +214,28 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 ),
                 const SizedBox(height: 8),
                 for (final ingredient in recipe.ingredients)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(top: 6, right: 8),
-                          child: Icon(Icons.circle, size: 6),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Icon(Icons.circle, size: 6),
+                      ),
+                      Expanded(
+                        child: Text(
+                          ServingScaler.scaledLine(ingredient, factor),
                         ),
-                        Expanded(
-                          child: Text(
-                            ServingScaler.scaledLine(ingredient, factor),
-                          ),
+                      ),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        tooltip: 'Add to shopping list',
+                        icon: const Icon(
+                          Icons.add_shopping_cart_outlined,
+                          size: 20,
                         ),
-                      ],
-                    ),
+                        onPressed: () => _addToShoppingList(ingredient, factor),
+                      ),
+                    ],
                   ),
                 const SizedBox(height: 20),
                 Text('Steps', style: Theme.of(context).textTheme.titleLarge),

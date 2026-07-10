@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +13,8 @@ import '../providers.dart';
 import 'import_screen.dart';
 import 'recipe_detail_screen.dart';
 import 'recipe_form_screen.dart';
+import 'shopping_list_screen.dart';
+import 'widgets/recipe_image.dart';
 
 class RecipeListScreen extends ConsumerWidget {
   const RecipeListScreen({super.key});
@@ -24,11 +25,23 @@ class RecipeListScreen extends ConsumerWidget {
     final tags = ref.watch(allTagsProvider).value ?? const <String>[];
     final selectedTags = ref.watch(selectedTagsProvider);
     final query = ref.watch(searchQueryProvider);
+    final shoppingCount = ref.watch(shoppingItemsProvider).value?.length ?? 0;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cookbook'),
         actions: [
+          IconButton(
+            tooltip: 'Shopping list',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ShoppingListScreen()),
+            ),
+            icon: Badge(
+              isLabelVisible: shoppingCount > 0,
+              label: Text('$shoppingCount'),
+              child: const Icon(Icons.shopping_cart_outlined),
+            ),
+          ),
           PopupMenuButton<String>(
             onSelected: (action) => action == 'export'
                 ? _exportBackup(context, ref)
@@ -213,16 +226,10 @@ class _RecipeCard extends StatelessWidget {
         leading: SizedBox(
           width: 56,
           height: 56,
-          child: recipe.imageUrl == null
-              ? const Icon(Icons.restaurant)
-              : ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: CachedNetworkImage(
-                    imageUrl: recipe.imageUrl!,
-                    fit: BoxFit.cover,
-                    errorWidget: (_, _, _) => const Icon(Icons.restaurant),
-                  ),
-                ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: RecipeImage(recipe: recipe, width: 56, height: 56, iconSize: 28),
+          ),
         ),
         title: Text(recipe.title, maxLines: 2, overflow: TextOverflow.ellipsis),
         subtitle: recipe.tags.isEmpty ? null : Text(recipe.tags.join(' · ')),

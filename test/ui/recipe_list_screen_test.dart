@@ -86,6 +86,33 @@ void main() {
     await flushTeardown(tester);
   });
 
+  testWidgets('cart icon shows a badge with the item count and opens the list', (
+    tester,
+  ) async {
+    final container = ProviderContainer(
+      overrides: [databaseProvider.overrideWithValue(db)],
+    );
+    addTearDown(container.dispose);
+    await container.read(shoppingRepositoryProvider).addItem('Milch');
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: RecipeListScreen()),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.byIcon(Icons.shopping_cart_outlined), findsOneWidget);
+    expect(find.text('1'), findsOneWidget); // badge label
+
+    await tester.tap(find.byIcon(Icons.shopping_cart_outlined));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 900)); // page transition
+    expect(find.text('Shopping list'), findsOneWidget);
+    await flushTeardown(tester);
+  });
+
   testWidgets('FAB opens a menu with import and manual-entry options', (
     tester,
   ) async {

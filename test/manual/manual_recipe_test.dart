@@ -12,6 +12,7 @@ void main() {
       cookMinutes: 20,
       ingredientsText: '200 g Mehl\n\n  2 Eier  \n',
       stepsText: 'Mix everything.\n\nBake.\n',
+      localImagePath: null,
       now: DateTime.utc(2026, 7, 7),
     );
 
@@ -55,6 +56,7 @@ void main() {
         prepMinutes: 15,
         ingredientsText: 'x',
         stepsText: 'y',
+        localImagePath: null,
       );
       expect(onlyPrep.totalMinutes, 15);
       final neither = buildManualRecipe(
@@ -62,6 +64,7 @@ void main() {
         author: '',
         ingredientsText: 'x',
         stepsText: 'y',
+        localImagePath: null,
       );
       expect(neither.totalMinutes, isNull);
     });
@@ -88,6 +91,7 @@ void main() {
         author: 'New author',
         ingredientsText: '1 EL Zucker',
         stepsText: 'New step',
+        localImagePath: null,
       );
       expect(r.id, 7);
       expect(r.sourceUrl, existing.sourceUrl);
@@ -123,6 +127,7 @@ void main() {
         cookMinutes: 60,
         ingredientsText: 'Fleisch',
         stepsText: 'Cook',
+        localImagePath: null,
       );
       expect(r.totalMinutes, 140);
     });
@@ -149,9 +154,32 @@ void main() {
         cookMinutes: 60,
         ingredientsText: 'Fleisch',
         stepsText: 'Cook',
+        localImagePath: null,
       );
       expect(r.totalMinutes, 90);
     });
+  });
+
+  test('localImagePath flows through and can be cleared', () {
+    final withImage = buildManualRecipe(
+      title: 'T',
+      author: '',
+      ingredientsText: 'Salz',
+      stepsText: 'Mix.',
+      localImagePath: 'images/1.jpg',
+    );
+    expect(withImage.localImagePath, 'images/1.jpg');
+
+    final cleared = buildManualRecipe(
+      existing: withImage,
+      title: 'T',
+      author: '',
+      ingredientsText: 'Salz',
+      stepsText: 'Mix.',
+      localImagePath: null,
+    );
+    expect(cleared.localImagePath, isNull);
+    expect(cleared.sourceUrl, withImage.sourceUrl);
   });
 
   test('isManual is false for chefkoch URLs', () {
