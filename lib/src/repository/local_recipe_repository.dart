@@ -72,6 +72,14 @@ class LocalRecipeRepository implements RecipeRepository {
   }
 
   @override
+  Future<void> setRating(int recipeId, double? rating) async {
+    // A single write already notifies watchers; rating is not in the FTS
+    // index, so no FTS rewrite here.
+    await (db.update(db.recipes)..where((r) => r.id.equals(recipeId)))
+        .write(RecipesCompanion(rating: Value(rating)));
+  }
+
+  @override
   Future<model.Recipe?> getRecipe(int id) async {
     final row =
         await (db.select(db.recipes)..where((r) => r.id.equals(id))).getSingleOrNull();

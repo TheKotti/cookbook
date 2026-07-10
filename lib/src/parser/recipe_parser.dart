@@ -31,7 +31,6 @@ class RecipeParser {
       prepMinutes: parseIso8601DurationToMinutes(data['prepTime'] as String?),
       cookMinutes: parseIso8601DurationToMinutes(data['cookTime'] as String?),
       totalMinutes: parseIso8601DurationToMinutes(data['totalTime'] as String?),
-      rating: _rating(data['aggregateRating']),
       ingredients: [
         for (final item in (data['recipeIngredient'] as List? ?? []))
           if (item is String) parseIngredient(item)
@@ -99,14 +98,6 @@ class RecipeParser {
         if (url != null) return url;
       }
     }
-    return null;
-  }
-
-  static double? _rating(Object? node) {
-    if (node is! Map) return null;
-    final value = node['ratingValue'];
-    if (value is num) return value.toDouble();
-    if (value is String) return double.tryParse(value);
     return null;
   }
 

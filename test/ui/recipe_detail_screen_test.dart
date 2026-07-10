@@ -75,6 +75,28 @@ void main() {
     await flushTeardown(tester);
   });
 
+  testWidgets('tapping a star persists the rating; tapping it again clears', (
+    tester,
+  ) async {
+    final container = await pumpDetail(tester, 'manual:123');
+    final repo = container.read(recipeRepositoryProvider);
+
+    expect(find.byIcon(Icons.star_border), findsNWidgets(5));
+
+    await tester.tap(find.byIcon(Icons.star_border).at(3)); // 4th star
+    await settle(tester);
+    final id = (await repo.getAllRecipes()).single.id!;
+    expect((await repo.getRecipe(id))!.rating, 4.0);
+    expect(find.byIcon(Icons.star), findsNWidgets(4));
+    expect(find.byIcon(Icons.star_border), findsNWidgets(1));
+
+    await tester.tap(find.byIcon(Icons.star).at(3)); // tap current value → clear
+    await settle(tester);
+    expect((await repo.getRecipe(id))!.rating, isNull);
+    expect(find.byIcon(Icons.star_border), findsNWidgets(5));
+    await flushTeardown(tester);
+  });
+
   testWidgets('edit button opens the pre-filled form', (tester) async {
     await pumpDetail(tester, 'manual:123');
     await tester.tap(find.byIcon(Icons.edit_outlined));

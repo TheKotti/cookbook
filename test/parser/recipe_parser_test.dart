@@ -22,7 +22,7 @@ void main() {
       expect(recipe.prepMinutes, 20);
       expect(recipe.cookMinutes, 40);
       expect(recipe.totalMinutes, 60);
-      expect(recipe.rating, 4.8);
+      expect(recipe.rating, isNull); // v1.1: ratings are user-set, never imported
       expect(recipe.imageUrl, startsWith('https://img.chefkoch-cdn.de/'));
       expect(recipe.sourceUrl, contains('1064631211795001'));
       expect(recipe.schemaVersion, kCurrentSchemaVersion);
@@ -65,7 +65,7 @@ void main() {
       expect(recipe.prepMinutes, 30);
       expect(recipe.cookMinutes, 70);
       expect(recipe.totalMinutes, 100);
-      expect(recipe.rating, 4.7);
+      expect(recipe.rating, isNull);
       expect(recipe.ingredients, hasLength(19));
       expect(recipe.steps.length, greaterThan(1));
     });
@@ -104,9 +104,9 @@ void main() {
       expect(recipe.totalMinutes, 45);
     });
 
-    test('image from ImageObject and rating from string', () {
+    test('image from ImageObject; rating is never imported', () {
       expect(recipe.imageUrl, 'https://img.chefkoch-cdn.de/synthetic.jpg');
-      expect(recipe.rating, 3.5);
+      expect(recipe.rating, isNull);
     });
 
     test('keywords list is lowercased and deduped', () {

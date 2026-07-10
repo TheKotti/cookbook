@@ -151,12 +151,29 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                         icon: Icons.schedule,
                         text: 'Total ${_formatMinutes(recipe.totalMinutes!)}',
                       ),
-                    if (recipe.rating != null)
-                      _InfoItem(
-                        icon: Icons.star,
-                        text: recipe.rating!
-                            .toStringAsFixed(1)
-                            .replaceAll('.', ','),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    for (var star = 1; star <= 5; star++)
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        tooltip: 'Rate $star of 5',
+                        icon: Icon(
+                          star <= (recipe.rating ?? 0)
+                              ? Icons.star
+                              : Icons.star_border,
+                          color: Colors.amber,
+                        ),
+                        onPressed: () =>
+                            ref.read(recipeRepositoryProvider).setRating(
+                                  recipe.id!,
+                                  recipe.rating == star.toDouble()
+                                      ? null
+                                      : star.toDouble(),
+                                ),
                       ),
                   ],
                 ),
