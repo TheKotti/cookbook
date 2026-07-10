@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,6 +6,7 @@ import '../providers.dart';
 import '../scaling/serving_scaler.dart';
 import 'recipe_form_screen.dart';
 import 'tag_editor_sheet.dart';
+import 'widgets/recipe_image.dart';
 
 class RecipeDetailScreen extends ConsumerStatefulWidget {
   final int recipeId;
@@ -47,7 +47,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       ),
     );
     if (confirmed == true && mounted) {
+      final localImagePath = recipe.localImagePath;
       await ref.read(recipeRepositoryProvider).deleteRecipe(recipe.id!);
+      if (localImagePath != null) {
+        await ref.read(imageStoreProvider).delete(localImagePath);
+      }
       if (mounted) Navigator.of(context).pop();
     }
   }
@@ -91,20 +95,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       body: ListView(
         padding: const EdgeInsets.only(bottom: 32),
         children: [
-          if (recipe.imageUrl != null)
-            CachedNetworkImage(
-              imageUrl: recipe.imageUrl!,
-              height: 220,
-              fit: BoxFit.cover,
-              placeholder: (_, _) => const SizedBox(
-                height: 220,
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              errorWidget: (_, _, _) => const SizedBox(
-                height: 120,
-                child: Center(child: Icon(Icons.restaurant, size: 48)),
-              ),
-            ),
+          if (recipe.localImagePath != null || recipe.imageUrl != null)
+            RecipeImage(recipe: recipe, height: 220, width: double.infinity),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(

@@ -72,6 +72,9 @@ class BackupService {
         'title': r.title,
         'author': r.author,
         'image_url': r.imageUrl,
+        // Only the path is backed up, not the file bytes — restoring on a
+        // different device shows a placeholder for local images (spec §4.6).
+        'local_image_path': r.localImagePath,
         'base_servings': r.baseServings,
         'prep_minutes': r.prepMinutes,
         'cook_minutes': r.cookMinutes,
@@ -95,6 +98,7 @@ class BackupService {
       title: title,
       author: json['author'] as String? ?? '',
       imageUrl: json['image_url'] as String?,
+      localImagePath: json['local_image_path'] as String?,
       baseServings: json['base_servings'] as int?,
       prepMinutes: json['prep_minutes'] as int?,
       cookMinutes: json['cook_minutes'] as int?,

@@ -20,6 +20,10 @@ Recipe buildManualRecipe({
   int? cookMinutes,
   required String ingredientsText,
   required String stepsText,
+
+  /// The form owns this field (v1.1 photos): pass the current form state,
+  /// which starts as `existing?.localImagePath` in edit mode.
+  required String? localImagePath,
   DateTime? now,
 }) {
   final effectiveNow = now ?? DateTime.now();
@@ -40,6 +44,7 @@ Recipe buildManualRecipe({
     title: title.trim(),
     author: author.trim(),
     imageUrl: existing?.imageUrl,
+    localImagePath: localImagePath,
     baseServings: servings,
     prepMinutes: prepMinutes,
     cookMinutes: cookMinutes,
