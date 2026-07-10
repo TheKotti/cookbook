@@ -19,6 +19,13 @@ class RecipeDetailScreen extends ConsumerStatefulWidget {
 class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
   int? _targetServings;
 
+  // Ingredient index → the shopping-list item id it added, for items added
+  // during THIS viewing only. Ephemeral: this State (and the map) is recreated
+  // empty every time the screen opens, so there is no lookup against the
+  // shopping list on open. It is independent of the serving scaler, so
+  // changing servings never rewrites an already-added line or a highlight.
+  final Map<int, int> _addedItemIds = {};
+
   String _formatMinutes(int minutes) {
     if (minutes < 60) return '$minutes min';
     final h = minutes ~/ 60;
@@ -26,19 +33,25 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     return m == 0 ? '$h h' : '$h h $m min';
   }
 
-  Future<void> _addToShoppingList(Ingredient ingredient, double factor) async {
+  Future<void> _toggleShoppingItem(
+    int index,
+    Ingredient ingredient,
+    double factor,
+  ) async {
     final repo = ref.read(shoppingRepositoryProvider);
-    final id = await repo.addItem(ServingScaler.scaledLine(ingredient, factor));
-    if (!mounted || id == -1) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Added to shopping list'),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () => repo.removeItem(id),
-        ),
-      ),
-    );
+    final existingId = _addedItemIds[index];
+    if (existingId != null) {
+      // Highlighted → remove the exact item this button added, un-highlight.
+      await repo.removeItem(existingId);
+      if (!mounted) return;
+      setState(() => _addedItemIds.remove(index));
+    } else {
+      // Not added → add the currently-scaled line, highlight this button.
+      final id =
+          await repo.addItem(ServingScaler.scaledLine(ingredient, factor));
+      if (!mounted || id == -1) return; // addItem returns -1 for empty text
+      setState(() => _addedItemIds[index] = id);
+    }
   }
 
   Future<void> _confirmDelete(Recipe recipe) async {
@@ -213,7 +226,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                for (final ingredient in recipe.ingredients)
+                for (final (index, ingredient) in recipe.ingredients.indexed)
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -228,12 +241,20 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       ),
                       IconButton(
                         visualDensity: VisualDensity.compact,
-                        tooltip: 'Add to shopping list',
-                        icon: const Icon(
-                          Icons.add_shopping_cart_outlined,
+                        tooltip: _addedItemIds.containsKey(index)
+                            ? 'Remove from shopping list'
+                            : 'Add to shopping list',
+                        icon: Icon(
+                          _addedItemIds.containsKey(index)
+                              ? Icons.shopping_cart // filled = added
+                              : Icons.add_shopping_cart_outlined,
                           size: 20,
+                          color: _addedItemIds.containsKey(index)
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
                         ),
-                        onPressed: () => _addToShoppingList(ingredient, factor),
+                        onPressed: () =>
+                            _toggleShoppingItem(index, ingredient, factor),
                       ),
                     ],
                   ),

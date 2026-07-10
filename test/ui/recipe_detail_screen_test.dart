@@ -100,9 +100,9 @@ void main() {
     await flushTeardown(tester);
   });
 
-  testWidgets('cart button adds the scaled ingredient line to the shopping list', (
-    tester,
-  ) async {
+  // Single-ingredient recipe (200 g Mehl @ 2 servings) for the cart tests, so
+  // find.byIcon matches exactly one cart button.
+  Future<ProviderContainer> pumpCartRecipe(WidgetTester tester) async {
     final container = ProviderContainer(
       overrides: [databaseProvider.overrideWithValue(db)],
     );
@@ -127,6 +127,13 @@ void main() {
       child: MaterialApp(home: RecipeDetailScreen(recipeId: id)),
     ));
     await settle(tester);
+    return container;
+  }
+
+  testWidgets(
+      'cart button adds the scaled ingredient line and highlights, no snackbar',
+      (tester) async {
+    final container = await pumpCartRecipe(tester);
 
     // Scale 2 → 3 servings, then add to cart: expect the scaled line.
     await tester.tap(find.byIcon(Icons.add_circle_outline));
@@ -139,7 +146,52 @@ void main() {
     final items = await tester.runAsync(
         () => container.read(shoppingRepositoryProvider).watchItems().first);
     expect(items!.single.text, '300 g Mehl');
-    expect(find.text('Added to shopping list'), findsOneWidget);
+    // Button flips to the highlighted (filled) state; no snackbar feedback.
+    expect(find.byIcon(Icons.shopping_cart), findsOneWidget);
+    expect(find.byIcon(Icons.add_shopping_cart_outlined), findsNothing);
+    expect(find.text('Added to shopping list'), findsNothing);
+    await flushTeardown(tester);
+  });
+
+  testWidgets('tapping the highlighted cart button removes the item it added', (
+    tester,
+  ) async {
+    final container = await pumpCartRecipe(tester);
+
+    await tester.tap(find.byIcon(Icons.add_shopping_cart_outlined));
+    await settle(tester);
+    var items = await tester.runAsync(
+        () => container.read(shoppingRepositoryProvider).watchItems().first);
+    expect(items!, hasLength(1));
+
+    await tester.tap(find.byIcon(Icons.shopping_cart)); // toggle off
+    await settle(tester);
+    items = await tester.runAsync(
+        () => container.read(shoppingRepositoryProvider).watchItems().first);
+    expect(items!, isEmpty);
+    expect(find.byIcon(Icons.add_shopping_cart_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.shopping_cart), findsNothing);
+    await flushTeardown(tester);
+  });
+
+  testWidgets('changing servings leaves the added item and highlight untouched', (
+    tester,
+  ) async {
+    final container = await pumpCartRecipe(tester);
+
+    // Add at the base 2 servings → '200 g Mehl'.
+    await tester.tap(find.byIcon(Icons.add_shopping_cart_outlined));
+    await settle(tester);
+
+    // Scale up to 3 servings afterwards.
+    await tester.tap(find.byIcon(Icons.add_circle_outline));
+    await settle(tester);
+
+    // The list keeps the amount from the moment of adding; the highlight stays.
+    final items = await tester.runAsync(
+        () => container.read(shoppingRepositoryProvider).watchItems().first);
+    expect(items!.single.text, '200 g Mehl');
+    expect(find.byIcon(Icons.shopping_cart), findsOneWidget);
     await flushTeardown(tester);
   });
 
