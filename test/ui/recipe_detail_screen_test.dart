@@ -69,9 +69,12 @@ void main() {
     await flushTeardown(tester);
   });
 
-  testWidgets('imported recipe keeps the chefkoch source link', (tester) async {
+  testWidgets('imported recipe shows plain author line with no chefkoch link', (
+    tester,
+  ) async {
     await pumpDetail(tester, 'https://www.chefkoch.de/rezepte/1/a.html');
-    expect(find.text('By Oma · chefkoch.de'), findsOneWidget);
+    expect(find.text('By Oma'), findsOneWidget);
+    expect(find.textContaining('chefkoch.de'), findsNothing);
     await flushTeardown(tester);
   });
 

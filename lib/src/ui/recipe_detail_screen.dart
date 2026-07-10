@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../models/recipe.dart';
 import '../providers.dart';
@@ -116,21 +115,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 4),
-                recipe.isManual
-                    ? Text('By $author')
-                    : InkWell(
-                        onTap: () => launchUrl(
-                          Uri.parse(recipe.sourceUrl),
-                          mode: LaunchMode.externalApplication,
-                        ),
-                        child: Text(
-                          'By $author · chefkoch.de',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
+                Text('By $author'),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 16,
