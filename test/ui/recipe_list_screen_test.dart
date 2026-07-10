@@ -86,6 +86,45 @@ void main() {
     await flushTeardown(tester);
   });
 
+  testWidgets('rated recipe shows its stars before the tags on the card', (
+    tester,
+  ) async {
+    final container = ProviderContainer(
+      overrides: [databaseProvider.overrideWithValue(db)],
+    );
+    addTearDown(container.dispose);
+    await container.read(recipeRepositoryProvider).saveRecipe(
+          model.Recipe(
+            sourceUrl: 'manual:rated-1',
+            title: 'Bewertet',
+            author: 'x',
+            rating: 4,
+            ingredients: const [],
+            steps: const [],
+            tags: const ['pasta'],
+            importedAt: DateTime.utc(2026, 7, 10),
+          ),
+        );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: RecipeListScreen()),
+      ),
+    );
+    await settle(tester);
+
+    expect(find.byIcon(Icons.star), findsNWidgets(4));
+    expect(find.byIcon(Icons.star_border), findsNWidgets(1));
+    // 'pasta' also renders as a filter chip above the list — assert the tag
+    // line inside the card specifically.
+    expect(
+      find.descendant(of: find.byType(Card), matching: find.text('pasta')),
+      findsOneWidget,
+    );
+    await flushTeardown(tester);
+  });
+
   testWidgets('cart icon shows a badge with the item count and opens the list', (
     tester,
   ) async {
