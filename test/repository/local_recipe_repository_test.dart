@@ -171,4 +171,18 @@ void main() {
     await repo.setTags(id, ['neu']);
     expect((await repo.watchRecipe(id).first)!.tags, ['neu']);
   });
+
+  test('localImagePath round-trips through saveRecipe/getRecipe', () async {
+    final id = await repo.saveRecipe(model.Recipe(
+      sourceUrl: 'manual:42',
+      title: 'Mit Bild',
+      author: 'me',
+      localImagePath: 'images/1234.jpg',
+      ingredients: const [],
+      steps: const [],
+      tags: const [],
+      importedAt: DateTime.utc(2026, 7, 10),
+    ));
+    expect((await repo.getRecipe(id))!.localImagePath, 'images/1234.jpg');
+  });
 }
