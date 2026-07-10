@@ -232,7 +232,30 @@ class _RecipeCard extends StatelessWidget {
           ),
         ),
         title: Text(recipe.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-        subtitle: recipe.tags.isEmpty ? null : Text(recipe.tags.join(' · ')),
+        subtitle: (recipe.rating == null && recipe.tags.isEmpty)
+            ? null
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Rating renders before the tags; unrated shows no stars.
+                  if (recipe.rating != null)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (var star = 1; star <= 5; star++)
+                          Icon(
+                            star <= recipe.rating!
+                                ? Icons.star
+                                : Icons.star_border,
+                            size: 14,
+                            color: Colors.amber,
+                          ),
+                      ],
+                    ),
+                  if (recipe.tags.isNotEmpty) Text(recipe.tags.join(' · ')),
+                ],
+              ),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => RecipeDetailScreen(recipeId: recipe.id!),
