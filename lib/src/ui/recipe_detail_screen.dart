@@ -26,6 +26,21 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     return m == 0 ? '$h h' : '$h h $m min';
   }
 
+  Future<void> _addToShoppingList(Ingredient ingredient, double factor) async {
+    final repo = ref.read(shoppingRepositoryProvider);
+    final id = await repo.addItem(ServingScaler.scaledLine(ingredient, factor));
+    if (!mounted || id == -1) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Added to shopping list'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () => repo.removeItem(id),
+        ),
+      ),
+    );
+  }
+
   Future<void> _confirmDelete(Recipe recipe) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -199,22 +214,28 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 ),
                 const SizedBox(height: 8),
                 for (final ingredient in recipe.ingredients)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(top: 6, right: 8),
-                          child: Icon(Icons.circle, size: 6),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Icon(Icons.circle, size: 6),
+                      ),
+                      Expanded(
+                        child: Text(
+                          ServingScaler.scaledLine(ingredient, factor),
                         ),
-                        Expanded(
-                          child: Text(
-                            ServingScaler.scaledLine(ingredient, factor),
-                          ),
+                      ),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        tooltip: 'Add to shopping list',
+                        icon: const Icon(
+                          Icons.add_shopping_cart_outlined,
+                          size: 20,
                         ),
-                      ],
-                    ),
+                        onPressed: () => _addToShoppingList(ingredient, factor),
+                      ),
+                    ],
                   ),
                 const SizedBox(height: 20),
                 Text('Steps', style: Theme.of(context).textTheme.titleLarge),

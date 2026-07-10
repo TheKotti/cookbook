@@ -13,6 +13,7 @@ import '../providers.dart';
 import 'import_screen.dart';
 import 'recipe_detail_screen.dart';
 import 'recipe_form_screen.dart';
+import 'shopping_list_screen.dart';
 import 'widgets/recipe_image.dart';
 
 class RecipeListScreen extends ConsumerWidget {
@@ -24,11 +25,23 @@ class RecipeListScreen extends ConsumerWidget {
     final tags = ref.watch(allTagsProvider).value ?? const <String>[];
     final selectedTags = ref.watch(selectedTagsProvider);
     final query = ref.watch(searchQueryProvider);
+    final shoppingCount = ref.watch(shoppingItemsProvider).value?.length ?? 0;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cookbook'),
         actions: [
+          IconButton(
+            tooltip: 'Shopping list',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ShoppingListScreen()),
+            ),
+            icon: Badge(
+              isLabelVisible: shoppingCount > 0,
+              label: Text('$shoppingCount'),
+              child: const Icon(Icons.shopping_cart_outlined),
+            ),
+          ),
           PopupMenuButton<String>(
             onSelected: (action) => action == 'export'
                 ? _exportBackup(context, ref)

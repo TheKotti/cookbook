@@ -100,6 +100,49 @@ void main() {
     await flushTeardown(tester);
   });
 
+  testWidgets('cart button adds the scaled ingredient line to the shopping list', (
+    tester,
+  ) async {
+    final container = ProviderContainer(
+      overrides: [databaseProvider.overrideWithValue(db)],
+    );
+    addTearDown(container.dispose);
+    final id = await container.read(recipeRepositoryProvider).saveRecipe(
+          model.Recipe(
+            sourceUrl: 'manual:9',
+            title: 'Nudeln',
+            author: 'me',
+            baseServings: 2,
+            ingredients: const [
+              model.Ingredient(
+                  amount: 200, unit: 'g', name: 'Mehl', raw: '200 g Mehl'),
+            ],
+            steps: const ['Mix.'],
+            tags: const [],
+            importedAt: DateTime.utc(2026, 7, 10),
+          ),
+        );
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(home: RecipeDetailScreen(recipeId: id)),
+    ));
+    await settle(tester);
+
+    // Scale 2 → 3 servings, then add to cart: expect the scaled line.
+    await tester.tap(find.byIcon(Icons.add_circle_outline));
+    await settle(tester);
+    await tester.tap(find.byIcon(Icons.add_shopping_cart_outlined));
+    await settle(tester);
+
+    // Drift streams deliver via real timers — read them under runAsync, or
+    // the await never completes inside the fake-async test zone.
+    final items = await tester.runAsync(
+        () => container.read(shoppingRepositoryProvider).watchItems().first);
+    expect(items!.single.text, '300 g Mehl');
+    expect(find.text('Added to shopping list'), findsOneWidget);
+    await flushTeardown(tester);
+  });
+
   testWidgets('edit button opens the pre-filled form', (tester) async {
     await pumpDetail(tester, 'manual:123');
     await tester.tap(find.byIcon(Icons.edit_outlined));

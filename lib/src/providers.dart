@@ -8,8 +8,11 @@ import 'db/database.dart' show AppDatabase;
 import 'images/image_store.dart';
 import 'import/import_service.dart';
 import 'models/recipe.dart';
+import 'models/shopping_item.dart';
 import 'repository/local_recipe_repository.dart';
+import 'repository/local_shopping_repository.dart';
 import 'repository/recipe_repository.dart';
+import 'repository/shopping_repository.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase(driftDatabase(name: 'cookbook'));
@@ -75,3 +78,9 @@ final imageStoreProvider = Provider<ImageStore>(
 final imagePickProvider = Provider<Future<String?> Function(ImageSource source)>(
     (ref) => (source) async =>
         (await ImagePicker().pickImage(source: source, maxWidth: 1600))?.path);
+
+final shoppingRepositoryProvider = Provider<ShoppingRepository>(
+    (ref) => LocalShoppingRepository(ref.watch(databaseProvider)));
+
+final shoppingItemsProvider = StreamProvider<List<ShoppingItem>>(
+    (ref) => ref.watch(shoppingRepositoryProvider).watchItems());
