@@ -48,7 +48,7 @@ void main() {
         " ('https://www.chefkoch.de/rezepte/1/a.html', 'Alt', 'x', '[]', '[]',"
         " '2026-07-07T00:00:00.000Z', 1)");
     db.execute('PRAGMA user_version = 1');
-    db.dispose();
+    db.close();
     return file;
   }
 
