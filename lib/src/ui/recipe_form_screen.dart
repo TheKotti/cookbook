@@ -127,6 +127,16 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
       ? null
       : message;
 
+  // A recipe needs at least one real ingredient; `#` section headers alone
+  // don't count (v1.3).
+  String? _requireIngredient(String? value) =>
+      (value ?? '').split('\n').any((l) {
+        final line = l.trim();
+        return line.isNotEmpty && !line.startsWith('#');
+      })
+      ? null
+      : 'Add at least one ingredient';
+
   Future<void> _save() async {
     if (_saving || !_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
@@ -314,14 +324,16 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
                       controller: _ingredients,
                       decoration: const InputDecoration(
                         labelText: 'Ingredients (one per line)',
-                        hintText: '200 g Mehl\n2 Eier\n1 Prise Salz',
+                        hintText:
+                            '# Klopse\n500 g Hackfleisch\n2 Eier\n# Sauce\n40 g Butter',
+                        helperText: 'Start a line with # to add a section '
+                            'header (e.g. # Sauce).',
                         border: OutlineInputBorder(),
                         alignLabelWithHint: true,
                       ),
                       minLines: 5,
                       maxLines: 12,
-                      validator: (v) =>
-                          _requiredLines(v, 'Add at least one ingredient'),
+                      validator: _requireIngredient,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(

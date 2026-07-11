@@ -111,6 +111,43 @@ void main() {
     await flushTeardown(tester);
   });
 
+  testWidgets('a recipe of only # section headers fails validation (v1.3)', (
+    tester,
+  ) async {
+    final container = await pumpForm(tester);
+    await enterField(tester, 'Title', 'Klopse');
+    await enterField(
+        tester, 'Ingredients (one per line)', '# Klopse\n# Sauce');
+    await enterField(tester, 'Steps (one per line)', 'Cook.');
+    await tester.ensureVisible(find.text('Save'));
+    await tester.tap(find.text('Save'));
+    await settle(tester);
+    expect(find.text('Add at least one ingredient'), findsOneWidget);
+    expect(
+      await container.read(recipeRepositoryProvider).getAllRecipes(),
+      isEmpty,
+    );
+    await flushTeardown(tester);
+  });
+
+  testWidgets('a # header plus a real ingredient saves with the section (v1.3)',
+      (tester) async {
+    final container = await pumpForm(tester);
+    await enterField(tester, 'Title', 'Klopse');
+    await enterField(
+        tester, 'Ingredients (one per line)', '# Sauce\n40 g Butter');
+    await enterField(tester, 'Steps (one per line)', 'Cook.');
+    await tester.ensureVisible(find.text('Save'));
+    await tester.tap(find.text('Save'));
+    await settle(tester);
+    final saved =
+        (await container.read(recipeRepositoryProvider).getAllRecipes()).single;
+    expect(saved.ingredients.first.isSection, isTrue);
+    expect(saved.ingredients.first.name, 'Sauce');
+    expect(saved.ingredients[1].name, 'Butter');
+    await flushTeardown(tester);
+  });
+
   testWidgets('edit pre-fills fields and preserves identity and tags', (
     tester,
   ) async {

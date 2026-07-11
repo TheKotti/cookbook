@@ -195,6 +195,50 @@ void main() {
     await flushTeardown(tester);
   });
 
+  testWidgets(
+      'section headers render as headings with no cart button (v1.3)', (
+    tester,
+  ) async {
+    final container = ProviderContainer(
+      overrides: [databaseProvider.overrideWithValue(db)],
+    );
+    addTearDown(container.dispose);
+    final id = await container.read(recipeRepositoryProvider).saveRecipe(
+          model.Recipe(
+            sourceUrl: 'manual:77',
+            title: 'Königsberger',
+            author: 'me',
+            baseServings: 4,
+            ingredients: const [
+              model.Ingredient(name: 'Klopse', raw: '# Klopse', isSection: true),
+              model.Ingredient(
+                  amount: 500,
+                  unit: 'g',
+                  name: 'Kalbshack',
+                  raw: '500 g Kalbshack'),
+              model.Ingredient(name: 'Sauce', raw: '# Sauce', isSection: true),
+              model.Ingredient(
+                  amount: 40, unit: 'g', name: 'Butter', raw: '40 g Butter'),
+            ],
+            steps: const ['Cook.'],
+            tags: const [],
+            importedAt: DateTime.utc(2026, 7, 11),
+          ),
+        );
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(home: RecipeDetailScreen(recipeId: id)),
+    ));
+    await settle(tester);
+
+    // Both section headings are shown as text...
+    expect(find.text('Klopse'), findsOneWidget);
+    expect(find.text('Sauce'), findsOneWidget);
+    // ...and only the two real ingredients get a cart button (not the headers).
+    expect(find.byIcon(Icons.add_shopping_cart_outlined), findsNWidgets(2));
+    await flushTeardown(tester);
+  });
+
   testWidgets('edit button opens the pre-filled form', (tester) async {
     await pumpDetail(tester, 'manual:123');
     await tester.tap(find.byIcon(Icons.edit_outlined));
