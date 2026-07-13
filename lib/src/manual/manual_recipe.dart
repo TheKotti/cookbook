@@ -7,6 +7,25 @@ String newManualSourceUrl({DateTime? now}) =>
 List<String> _nonEmptyLines(String text) =>
     text.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
 
+/// Strips the leading `#`(s) and surrounding space from a section-header line.
+final RegExp _sectionMarker = RegExp(r'^#+\s*');
+
+/// Parses the ingredients box into a flat list where a line beginning with
+/// `#` becomes a section header (v1.3, e.g. `# Klopse`). A bare `#` with no
+/// heading text is dropped; every other line runs through [parseIngredient].
+List<Ingredient> _parseIngredientLines(String text) {
+  final result = <Ingredient>[];
+  for (final line in _nonEmptyLines(text)) {
+    if (line.startsWith('#')) {
+      final name = line.replaceFirst(_sectionMarker, '').trim();
+      if (name.isNotEmpty) result.add(Ingredient.section(name));
+    } else {
+      result.add(parseIngredient(line));
+    }
+  }
+  return result;
+}
+
 /// Builds the [Recipe] to save from the manual form's raw inputs. With
 /// [existing] set (edit mode), the fields the form doesn't own — id,
 /// sourceUrl, imageUrl, rating, tags, importedAt — are preserved; otherwise
@@ -50,9 +69,7 @@ Recipe buildManualRecipe({
     cookMinutes: cookMinutes,
     totalMinutes: totalMinutes,
     rating: existing?.rating,
-    ingredients: [
-      for (final line in _nonEmptyLines(ingredientsText)) parseIngredient(line),
-    ],
+    ingredients: _parseIngredientLines(ingredientsText),
     steps: _nonEmptyLines(stepsText),
     tags: existing?.tags ?? const [],
     importedAt: existing?.importedAt ?? effectiveNow,

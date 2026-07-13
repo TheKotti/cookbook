@@ -157,7 +157,14 @@ class LocalRecipeRepository implements RecipeRepository {
     await db.customStatement('DELETE FROM recipe_fts WHERE rowid = ?', [id]);
     await db.customStatement(
       'INSERT INTO recipe_fts(rowid, title, tags, ingredients) VALUES (?, ?, ?, ?)',
-      [id, title, tags.join(' '), ingredients.map((i) => i.name).join(' ')],
+      [
+        id,
+        title,
+        tags.join(' '),
+        // Section headers (v1.3) are display-only labels, not searchable
+        // ingredients — keep them out of the FTS index.
+        ingredients.where((i) => !i.isSection).map((i) => i.name).join(' '),
+      ],
     );
   }
 

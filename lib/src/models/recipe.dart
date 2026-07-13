@@ -9,13 +9,26 @@ class Ingredient {
   final String name;
   final String raw;
 
+  /// A section header (e.g. "Klopse", "Sauce") rather than a purchasable
+  /// ingredient. Marked in the input data with a leading `#` (v1.3). Section
+  /// entries carry only [name] (the heading text) and [raw] (`# <name>`), are
+  /// not serving-scaled, get no shopping-cart button, and are excluded from
+  /// search. Defaults false, so recipes saved before v1.3 decode unchanged.
+  final bool isSection;
+
   const Ingredient({
     this.amount,
     this.amountMax,
     this.unit,
     required this.name,
     required this.raw,
+    this.isSection = false,
   });
+
+  /// A `# <name>` section header. [raw] is normalized so the manual form's
+  /// ingredient box round-trips the header back to a `# <name>` line.
+  factory Ingredient.section(String name) =>
+      Ingredient(name: name, raw: '# $name', isSection: true);
 
   Map<String, dynamic> toJson() => {
         'amount': amount,
@@ -23,6 +36,8 @@ class Ingredient {
         'unit': unit,
         'name': name,
         'raw': raw,
+        // Omitted when false to keep pre-v1.3 payloads byte-identical.
+        if (isSection) 'is_section': true,
       };
 
   factory Ingredient.fromJson(Map<String, dynamic> json) => Ingredient(
@@ -31,6 +46,7 @@ class Ingredient {
         unit: json['unit'] as String?,
         name: json['name'] as String? ?? '',
         raw: json['raw'] as String? ?? '',
+        isSection: json['is_section'] as bool? ?? false,
       );
 
   @override
@@ -40,14 +56,15 @@ class Ingredient {
       other.amountMax == amountMax &&
       other.unit == unit &&
       other.name == name &&
-      other.raw == raw;
+      other.raw == raw &&
+      other.isSection == isSection;
 
   @override
-  int get hashCode => Object.hash(amount, amountMax, unit, name, raw);
+  int get hashCode => Object.hash(amount, amountMax, unit, name, raw, isSection);
 
   @override
   String toString() =>
-      'Ingredient(amount: $amount, amountMax: $amountMax, unit: $unit, name: $name, raw: $raw)';
+      'Ingredient(amount: $amount, amountMax: $amountMax, unit: $unit, name: $name, raw: $raw, isSection: $isSection)';
 }
 
 class Recipe {

@@ -70,6 +70,53 @@ void main() {
     });
   });
 
+  group('buildManualRecipe (# sections)', () {
+    Recipe build(String ingredientsText) => buildManualRecipe(
+      title: 'T',
+      author: '',
+      ingredientsText: ingredientsText,
+      stepsText: 'Cook.',
+      localImagePath: null,
+      now: DateTime.utc(2026, 7, 11),
+    );
+
+    test('# lines become section headers, other lines stay ingredients', () {
+      final r = build('# Klopse\n500 g Hackfleisch\n2 Eier\n# Sauce\n40 g Butter');
+      expect(
+        [for (final i in r.ingredients) (i.name, i.isSection)],
+        [
+          ('Klopse', true),
+          ('Hackfleisch', false),
+          ('Eier', false),
+          ('Sauce', true),
+          ('Butter', false),
+        ],
+      );
+      // Header round-trips back to a `# ` line for the edit form.
+      expect(r.ingredients.first.raw, '# Klopse');
+    });
+
+    test('extra # and missing space are normalized', () {
+      final r = build('##  Sauce \n1 EL Öl');
+      expect(r.ingredients.first.isSection, isTrue);
+      expect(r.ingredients.first.name, 'Sauce');
+      expect(r.ingredients.first.raw, '# Sauce');
+    });
+
+    test('a bare # with no heading text is dropped', () {
+      final r = build('#\n1 EL Öl');
+      expect(r.ingredients, hasLength(1));
+      expect(r.ingredients.single.isSection, isFalse);
+    });
+
+    test('ingredients before the first # stay as an unlabeled group', () {
+      final r = build('1 Ei\n# Sauce\n40 g Butter');
+      expect(r.ingredients.first.isSection, isFalse);
+      expect(r.ingredients.first.name, 'Ei');
+      expect(r.ingredients[1].isSection, isTrue);
+    });
+  });
+
   group('buildManualRecipe (edit)', () {
     final existing = Recipe(
       id: 7,

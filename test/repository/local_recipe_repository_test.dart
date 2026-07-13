@@ -115,6 +115,26 @@ void main() {
       expect(await repo.watchRecipes(query: 'umbenannt').first, hasLength(1));
     });
 
+    test('section headers are not indexed as searchable ingredients (v1.3)',
+        () async {
+      await repo.saveRecipe(makeRecipe(
+        sourceUrl: 'https://www.chefkoch.de/rezepte/3/kk.html',
+        title: 'Königsberger',
+        ingredients: const [
+          model.Ingredient(name: 'Klopse', raw: '# Klopse', isSection: true),
+          model.Ingredient(
+              amount: 500, unit: 'g', name: 'Kalbshack', raw: '500 g Kalbshack'),
+        ],
+      ));
+      // The real ingredient is findable...
+      expect(
+        (await repo.watchRecipes(query: 'kalbshack').first).map((r) => r.title),
+        ['Königsberger'],
+      );
+      // ...but the section-header text is not.
+      expect(await repo.watchRecipes(query: 'klopse').first, isEmpty);
+    });
+
     test('search input with FTS metacharacters does not throw', () async {
       // Tokens are ANDed by FTS5, so this finds nothing — the assertion is
       // only that hostile input produces a valid (empty) result, not an error.

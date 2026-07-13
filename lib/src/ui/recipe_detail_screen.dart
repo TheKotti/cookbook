@@ -227,37 +227,49 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 ),
                 const SizedBox(height: 8),
                 for (final (index, ingredient) in recipe.ingredients.indexed)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(right: 8),
-                        child: Icon(Icons.circle, size: 6),
+                  if (ingredient.isSection)
+                    // Section header (§v1.3): a subheading, never scaled and
+                    // with no cart button — it is not a purchasable item.
+                    Padding(
+                      padding: const EdgeInsets.only(top: 14, bottom: 4),
+                      child: Text(
+                        ingredient.name,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
-                      Expanded(
-                        child: Text(
-                          ServingScaler.scaledLine(ingredient, factor),
+                    )
+                  else
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(right: 8),
+                          child: Icon(Icons.circle, size: 6),
                         ),
-                      ),
-                      IconButton(
-                        visualDensity: VisualDensity.compact,
-                        tooltip: _addedItemIds.containsKey(index)
-                            ? 'Remove from shopping list'
-                            : 'Add to shopping list',
-                        icon: Icon(
-                          _addedItemIds.containsKey(index)
-                              ? Icons.shopping_cart // filled = added
-                              : Icons.add_shopping_cart_outlined,
-                          size: 20,
-                          color: _addedItemIds.containsKey(index)
-                              ? Theme.of(context).colorScheme.primary
-                              : null,
+                        Expanded(
+                          child: Text(
+                            ServingScaler.scaledLine(ingredient, factor),
+                          ),
                         ),
-                        onPressed: () =>
-                            _toggleShoppingItem(index, ingredient, factor),
-                      ),
-                    ],
-                  ),
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          tooltip: _addedItemIds.containsKey(index)
+                              ? 'Remove from shopping list'
+                              : 'Add to shopping list',
+                          icon: Icon(
+                            _addedItemIds.containsKey(index)
+                                ? Icons.shopping_cart // filled = added
+                                : Icons.add_shopping_cart_outlined,
+                            size: 20,
+                            color: _addedItemIds.containsKey(index)
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                          ),
+                          onPressed: () =>
+                              _toggleShoppingItem(index, ingredient, factor),
+                        ),
+                      ],
+                    ),
                 const SizedBox(height: 20),
                 Text('Steps', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 8),
