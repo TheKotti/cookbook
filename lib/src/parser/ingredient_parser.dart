@@ -25,6 +25,19 @@ final RegExp _decimal = RegExp(r'^(\d+(?:[.,]\d+)?)(?=\s|$)');
 
 double _toDouble(String s) => double.parse(s.replaceAll(',', '.'));
 
+/// Where the leading amount (number, range or fraction) sits in [line], after
+/// an optional qualifier like "ca.". Lets the scaler swap just that span and
+/// keep the rest of the line verbatim. Null when there is no leading amount.
+({int start, int end})? leadingAmountSpan(String line) {
+  final start = _leadingQualifier.matchAsPrefix(line)?.end ?? 0;
+  final rest = line.substring(start);
+  for (final pattern in [_range, _mixedFraction, _loneFraction, _asciiFraction, _decimal]) {
+    final m = pattern.firstMatch(rest);
+    if (m != null) return (start: start, end: start + m.end);
+  }
+  return null;
+}
+
 /// Parses one Chefkoch `recipeIngredient` string. Never throws and never
 /// drops the ingredient: on any uncertainty the structured fields are null
 /// and `raw` carries the original text (§6).

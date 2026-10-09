@@ -1,4 +1,5 @@
 import 'package:cookbook/src/models/recipe.dart';
+import 'package:cookbook/src/parser/ingredient_parser.dart';
 import 'package:cookbook/src/scaling/serving_scaler.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -57,11 +58,51 @@ void main() {
     });
 
     test('countable ingredients render half-fractions (2,66 Eier never happens)', () {
-      expect(ServingScaler.scaledLine(egg, 1.33), '2 ½ Ei(er)');
+      expect(ServingScaler.scaledLine(egg, 1.33), '2 ½ Ei(er) (Größe M)');
     });
 
     test('amount-less ingredients show raw unchanged at any factor', () {
       expect(ServingScaler.scaledLine(salt, 3.0), 'Salz, nach Belieben');
+    });
+  });
+
+  group('scaledLine keeps everything after the leading amount verbatim', () {
+    String scale(String line, double factor) =>
+        ServingScaler.scaledLine(parseIngredient(line), factor);
+
+    test('text after a comma survives', () {
+      expect(
+        scale('240 g gemischter Reis Multi-Korn Reis, alternativ normaler Reis. '
+            'entspricht ca. 1 Tasse', 0.5),
+        '120 g gemischter Reis Multi-Korn Reis, alternativ normaler Reis. '
+            'entspricht ca. 1 Tasse',
+      );
+    });
+
+    test('bracketed text survives and its numbers are not scaled', () {
+      expect(scale('550 ml Wasser (2 Tassen)', 0.5), '275 ml Wasser (2 Tassen)');
+    });
+
+    test('ranges scale both bounds and keep the note', () {
+      expect(scale('2-3 Zehen Knoblauch, gehackt', 2.0), '4–6 Zehen Knoblauch, gehackt');
+    });
+
+    test('a leading qualifier is kept', () {
+      expect(scale('ca. 2 EL Öl (zum Braten)', 0.5), 'ca. 1 EL Öl (zum Braten)');
+    });
+
+    test('mixed fractions are replaced as a whole', () {
+      expect(scale('1 ½ Sternanis, ganz', 2.0), '3 Sternanis, ganz');
+    });
+
+    test('lines without a parsed note behave as before', () {
+      expect(scale('1 EL Rosinen', 2.0), '2 EL Rosinen');
+      expect(scale('0,5 TL Butter', 2.0), '1 TL Butter');
+    });
+
+    test('falls back to rebuilding when raw has no leading amount', () {
+      const odd = Ingredient(amount: 2, unit: 'EL', name: 'Zucker', raw: 'Zucker, 2 EL');
+      expect(ServingScaler.scaledLine(odd, 2.0), '4 EL Zucker');
     });
   });
 }

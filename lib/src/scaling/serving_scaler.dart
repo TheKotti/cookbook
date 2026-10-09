@@ -1,4 +1,5 @@
 import '../models/recipe.dart';
+import '../parser/ingredient_parser.dart';
 
 /// Display-only serving scaling (§7). Never mutates stored data.
 class ServingScaler {
@@ -24,7 +25,9 @@ class ServingScaler {
   }
 
   /// One display line per ingredient. Original `raw` text is shown when there
-  /// is nothing to scale (null amount) or nothing scaled (factor 1).
+  /// is nothing to scale (null amount) or nothing scaled (factor 1). Otherwise
+  /// only the leading amount in `raw` is replaced, so notes after a comma or in
+  /// brackets stay visible (and any numbers in them stay unscaled).
   static String scaledLine(Ingredient ing, double factor) {
     final amount = ing.amount;
     if (amount == null || factor == 1.0) return ing.raw;
@@ -33,6 +36,10 @@ class ServingScaler {
     final high = ing.amountMax == null
         ? ''
         : '–${formatNumber(ing.amountMax! * factor, countable: countable)}';
+    final span = leadingAmountSpan(ing.raw);
+    if (span != null) {
+      return '${ing.raw.substring(0, span.start)}$low$high${ing.raw.substring(span.end)}';
+    }
     final unit = ing.unit == null ? '' : ' ${ing.unit}';
     return '$low$high$unit ${ing.name}';
   }
