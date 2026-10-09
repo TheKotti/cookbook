@@ -1,0 +1,119 @@
+# Builds a release APK signed with the app's release key and publishes it as
+# a GitHub release. Run manually: Actions → Release → Run workflow (on main).
+# One-time setup (key + secrets) is described in README "Releasing".
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. 1.5 (creates tag v1.5)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency: release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Validate inputs and secrets
+        env:
+          VERSION: ${{ inputs.version }}
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          CERT_SHA256: ${{ secrets.ANDROID_CERT_SHA256 }}
+        run: |
+          # BEGIN logic
+          validate_version() {
+            if [[ "$1" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then return 0; fi
+            echo "::error::Version must look like 1.5 or 1.5.2 (no 'v' prefix, no spaces), got '$1'" >&2
+            return 1
+          }
+          build_name() {
+            if [[ "$1" =~ ^[0-9]+\.[0-9]+$ ]]; then echo "$1.0"; else echo "$1"; fi
+          }
+          norm_fp() {
+            printf '%s' "$1" | tr -d ': \t\r\n' | tr 'A-F' 'a-f'
+          }
+          # END logic
+          declare -f norm_fp > "$RUNNER_TEMP/logic.sh"
+
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Releases must be run from main, not $GITHUB_REF"; exit 1
+          fi
+          validate_version "$VERSION"
+          if [ -n "$(git ls-remote --tags origin "refs/tags/v$VERSION")" ]; then
+            echo "::error::Tag v$VERSION already exists - pick a new version"; exit 1
+          fi
+          for name in KEYSTORE_B64 KEYSTORE_PASSWORD KEY_ALIAS CERT_SHA256; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Signing secret for $name is missing - see README 'Releasing'"; exit 1
+            fi
+          done
+          echo "BUILD_NAME=$(build_name "$VERSION")" >> "$GITHUB_ENV"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.5
+          channel: stable
+          cache: true
+
+      - name: Analyze and test
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
+
+      - name: Restore signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          printf '%s' "$KEYSTORE_B64" | tr -d ' \r\n' | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyPassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "storeFile=$RUNNER_TEMP/release.jks"
+          } > android/key.properties
+
+      - name: Build APK
+        run: |
+          flutter build apk --release --build-name "$BUILD_NAME" --build-number "$GITHUB_RUN_NUMBER"
+
+      - name: Verify signing certificate
+        env:
+          CERT_SHA256: ${{ secrets.ANDROID_CERT_SHA256 }}
+        run: |
+          source "$RUNNER_TEMP/logic.sh"
+          APK=build/app/outputs/flutter-apk/app-release.apk
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
+          ACTUAL=$("$APKSIGNER" verify --print-certs "$APK" | grep -m1 'certificate SHA-256 digest' | sed 's/.*digest: //')
+          if [ "$(norm_fp "$ACTUAL")" != "$(norm_fp "$CERT_SHA256")" ]; then
+            echo "::error::APK is not signed with the release key (got $ACTUAL)"; exit 1
+          fi
+          echo "APK signed with the release key"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          gh release create "v$VERSION" build/app/outputs/flutter-apk/app-release.apk \
+            --title "$VERSION" --target "$GITHUB_SHA" --generate-notes --latest
