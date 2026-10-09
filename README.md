@@ -66,6 +66,11 @@ flutter clean   # always clean after touching plugin versions in pubspec.yaml
 flutter build apk --release
 ```
 
+Release builds are signed with the app's release key when
+`android/key.properties` exists (see [Releasing](#releasing)). Without it they
+fall back to the debug key and Gradle warns about it; a debug-signed APK will
+**not** install over a published release ("App not installed").
+
 The APK is written to `build/app/outputs/flutter-apk/app-release.apk`. Copy it
 to a device and install it (enable "install from unknown sources" if
 prompted), or install directly over adb:
@@ -88,6 +93,41 @@ flutter build ios --release
 ```
 
 Requires Xcode and a configured signing team in `ios/Runner.xcodeproj`.
+
+## Releasing
+
+Releases are built and signed on GitHub Actions:
+
+1. Make sure everything to ship is merged to `main`.
+2. On GitHub: **Actions → Release → Run workflow**, keep the branch on `main`,
+   enter the version (e.g. `1.5` or `1.5.1`, no `v` prefix).
+3. The workflow refuses to run from another branch or if tag `v<version>`
+   already exists, runs `flutter analyze` and `flutter test`, builds the APK
+   (versionName = the version, versionCode = the workflow run number), checks
+   that it is signed with the release key's certificate, and publishes release
+   `<version>` with `app-release.apk` and auto-generated notes.
+
+### Release key (one-time setup)
+
+Android only installs an update if it is signed with the same key as the
+installed app, so **every** release must use the one release key.
+
+- The key lives outside the repo in `C:\Users\konst\.cookbook-signing\`:
+  `cookbook-release.jks` (the keystore), `key.properties` (its password and
+  alias), `keystore.base64.txt` and `cert-sha256.txt` (for the secrets below).
+- **Back this folder up off this machine** (password manager, USB stick).
+  If the keystore or its password is lost, users must uninstall and reinstall
+  the app (losing data unless they export a backup first).
+- For signed local builds, copy `key.properties` to `android/key.properties`
+  (git-ignored, like `*.jks`).
+- Repository secrets (**Settings → Secrets and variables → Actions**):
+
+  | Secret | Value |
+  |---|---|
+  | `ANDROID_KEYSTORE_BASE64` | contents of `keystore.base64.txt` |
+  | `ANDROID_KEYSTORE_PASSWORD` | `storePassword` from `key.properties` |
+  | `ANDROID_KEY_ALIAS` | `cookbook` |
+  | `ANDROID_CERT_SHA256` | contents of `cert-sha256.txt` |
 
 ## Project layout
 
